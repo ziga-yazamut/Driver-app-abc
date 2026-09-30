@@ -4,6 +4,8 @@ A clickable **UI mockup** of the driver delivery app. It shows the screens and t
 
 Open [`mockup/index.html`](mockup/index.html) in a browser, or on a phone. Use the **EN / עב** switch at the top to change the language, and the **Driver / Main system** switch to change the view.
 
+Next to the phone (below it on a phone) is a spec card for the current screen: what it shows, what the driver does, the rules, and what gets saved for the delivery. The **All screens** list jumps straight to any of the 7 screens. **Demo: skip required fields** is on by default so you can click through; turn it off to see the real validation.
+
 ## What the mockup shows
 
 **Driver (phone):**

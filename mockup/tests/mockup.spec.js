@@ -403,3 +403,18 @@ test('mobile: tap targets in the wizard are at least 40px', async ({ page }) => 
   const b = await page.locator('[data-add="cash"]').boundingBox();
   expect(b.height).toBeGreaterThanOrEqual(40);
 });
+
+test('developer notes: every screen in the map opens and is described', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto(URL);
+  await page.click('#lang-en');
+  for (const k of ['terms', 'list', 'box', 'pay', 'rma', 'summary', 'done']) {
+    await page.click(`[data-go="${k}"]`);
+    await expect(page.locator(`[data-go="${k}"]`)).toHaveAttribute('aria-current', 'true');
+    expect((await page.textContent('#scr-h')).length).toBeGreaterThan(3);
+  }
+  await page.click('[data-go="pay"]');
+  await expect(page.locator('[data-add="check"]')).toBeVisible();
+  expect(errors).toEqual([]);
+});
