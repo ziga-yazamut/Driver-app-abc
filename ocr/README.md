@@ -1,40 +1,46 @@
-# OCR לשיקים
+# Check OCR
 
-מודול Python שמקבל צילום שיק מהנהג ומחזיר JSON עם מספר השיק, הבנק, הסניף, החשבון ופרטי המושך.
-הסכום והתאריך בכתב יד, ולכן לא נקראים. הנהג מקליד אותם.
+Reads an Israeli check from the driver's photo. It returns the check number, bank, branch, account, and the drawer's name and ID.
 
-## איך זה עובד
+The amount and the date are handwritten, so they are **not** read. The driver types the date, and the amount comes from the order.
 
-1. **מציאת השיק בתמונה:** מזהה את הנייר, מיישר פרספקטיבה ומסובב לרוחב. עובד בכל כיוון צילום, כולל הפוך.
-2. **שורת MICR** (הספרות המגנטיות בתחתית): חיתוך לתווים לפי פסיעה קבועה וזיהוי מול ספריית תבניות E-13B (`e13b_templates.npz`).
-   Tesseract הרגיל קורא את הגופן הזה גרוע, ולכן יש מסווג ייעודי.
-3. **השורה המודפסת העליונה** (`1000001 10 64731 01234567`): אותם מספרים בגופן רגיל, נקראים ב-Tesseract.
-4. **אימות צולב:** המספרים נחשבים ודאיים רק אם שני המקורות זהים. אחרת `needs_review=true` עם הסיבה.
-5. **בדיקות נוספות:** קוד בנק מוכר, מספר הסניף מופיע גם בכותרת השיק, ספרת ביקורת של ת"ז המושך, חדות התמונה וגודל השיק בתמונה.
-   אפשר גם לבדוק מול רשימת הסניפים של בנק ישראל: מגדירים `BRANCHES_CSV` לקובץ `bank,branch`.
+## How it works
 
-**הכלל:** אסור שתצא תוצאה שגויה בלי דגל. כל ספק מסומן `needs_review=true` עם סיבה בעברית. בכל מקרה השורה נכנסת למערכת הראשית כ"לבדיקה" עד שהצוות לוחץ "אשר והזן".
+1. **Find the check** in the photo, fix perspective, and rotate to landscape. Any rotation works, upside-down included.
+2. **Read the MICR line** (the magnetic digits at the bottom). Each character is cut out by its fixed pitch and matched against E-13B templates (`e13b_templates.npz`). Plain Tesseract reads this font badly, so there is a small dedicated classifier.
+3. **Read the printed top line** (e.g. `1000001 10 64731 01234567`), which holds the same numbers in a normal font, using Tesseract.
+4. **Cross-check:** the numbers count as certain only if both readings match. Otherwise the result gets `needs_review: true` with the reason.
+5. **Extra checks:**
+   - bank code is known
+   - the branch number also appears in the check header
+   - the drawer ID passes its check digit
+   - the photo is sharp enough and the check is not too small
+   - optionally, the branch is in the Bank of Israel list (`BRANCHES_CSV=bank,branch` file)
 
-## התקנה
+**Rule:** the module must never return a wrong number without `needs_review: true`. On top of that, every payment enters the main system as "to review" until someone clicks Approve.
+
+## Install and run
 
 ```bash
 sudo apt-get install -y tesseract-ocr tesseract-ocr-heb
 pip install -r requirements.txt
-```
 
-## שימוש
-
-```bash
-python check_ocr.py photo.jpg            # JSON
-python check_ocr.py photo.jpg --debug d/ # תמונת ביניים עם סימון התווים
-uvicorn api:app --port 8080              # שירות HTTP
+python check_ocr.py photo.jpg             # prints JSON
+python check_ocr.py photo.jpg --debug d/  # saves the aligned check with the MICR boxes
+uvicorn api:app --port 8080               # HTTP service
 ```
 
 ### `POST /ocr/check` (multipart)
-- `photo`: הצילום
-- `customer_tax_id`, `due_date`, `check_terms_days` (לא חובה): מחזיר אזהרות "שיק צד ג'" ו"פירעון מעבר לתנאים"
 
-תשובה לדוגמה (השיק מהבדיקה):
+| Field | Required | Notes |
+|---|---|---|
+| `photo` | yes | the check photo |
+| `customer_tax_id` | no | adds a "third-party check" warning when the drawer is not the customer |
+| `due_date` | no | with `check_terms_days`, adds a "due date beyond terms" warning |
+| `check_terms_days` | no | the customer's check terms |
+
+Example response (placeholder numbers):
+
 ```json
 {
   "check_no": "1000001", "bank": "10", "bank_name": "בנק לאומי",
@@ -48,41 +54,50 @@ uvicorn api:app --port 8080              # שירות HTTP
 ```
 
 ### `POST /ocr/learn`
-נקרא אחרי שהצוות אישר שיק. השדות: `photo`, `check_no`, `bank`, `branch_field`, `account`. התווים של השיק נוספים לספריית התבניות, כך שהזיהוי משתפר עם הזמן.
 
-**כפילויות:** בדיקה אם אותו שיק (בנק, סניף, חשבון ומספר) כבר נסרק נעשית בשרת, מול בסיס הנתונים.
+Call this after staff approve a check. The fields are `photo`, `check_no`, `bank`, `branch_field` and `account`. It adds that check's characters to the templates, so reading improves over time.
 
-## תוצאות בדיקה
+**Duplicates** (same bank, branch, account and check number already scanned) are checked by the server against its database.
 
-השיק שנבדק הוא שיק לאומי אמיתי (המספרים בקובץ הזה הוחלפו בערכי דוגמה) שצולם מסובב על שולחן. הוא נבדק כמו שהוא ובעוד 14 גרסאות מעוותות, ובסך הכל עברו 24 בדיקות (`pytest tests`).
+## Tests
 
-| גרסה | נקרא נכון | דגל בדיקה |
-|---|---|---|
-| מקורי, מסובב 90/180/270, מוטה ‎+6°/‎-8°, פרספקטיבה, JPEG באיכות 30, כהה, צל חזק, טשטוש קל | ✓ | לא |
-| רזולוציה נמוכה (שליש) | ✓ | לא |
-| טשטוש חזק | חשבון לא ודאי | ✓ "מטושטש, לצלם שוב" |
-| חשיפת יתר | MICR לא נמצא | ✓ |
-| ספרה ב-MICR שונתה בזיוף | אי-התאמה | ✓ |
+```bash
+pytest -q                      # all tests
+python tests/stress.py 300     # large random run, prints a summary
+```
 
-זמן עיבוד: כ-1.7 שניות לשיק (4 ליבות).
+- **`tests/test_synthetic.py`** runs in CI with no real photos. `tests/synth.py` builds fake checks with random numbers and banks, then distorts them like phone photos:
+  - rotation and tilt
+  - perspective
+  - shadow
+  - blur
+  - JPEG compression
 
-## מגבלות (חשוב)
+  It also covers these cases, which must all be flagged:
+  - an unknown digit (8)
+  - the top line disagreeing with the MICR
+  - a missing top line
+  - an invalid drawer ID
+  - an unknown bank
+  - a branch not in the list
+  - no check in the photo
+- **`tests/test_ocr.py`** runs on real photos in `samples/`, if present. They are git-ignored.
 
-- **התבניות נלמדו משיק אחד בלבד.** הספרה 8 עוד לא נלמדה, ולכן שיק שיש בו 8 יסומן לבדיקה עד שייכנס שיק כזה ל-`samples/`.
-  לפני עלייה לאוויר צריך 20–30 צילומי שיקים אמיתיים מבנקים שונים:
-  1. מוסיפים אותם ל-`samples/samples.json`.
-  2. מריצים `python build_templates.py samples/samples.json`.
-- **השורה המודפסת העליונה** קיימת בשיקי לאומי. אם בבנק אחר אין שורה כזו, יש רק מקור אחד, והשיק יסומן לבדיקה.
-- **שם המושך והכתובת** נקראים ב-Tesseract עברית, ויכולות להיות שגיאות קטנות (למשל אות אחת שגויה בשם רחוב). הם לתצוגה בלבד. לאימות משמשת הת"ז, שיש לה ספרת ביקורת.
-- **ה-"31" בשדה הסניף** (`64731`) נשמר כמו שהוא ב-`branch_field`. המשמעות שלו עוד לא ידועה.
+**Limits:**
+- The templates come from one real check. The synthetic checks use the same character shapes, so these tests prove the pipeline, not accuracy on other banks' print.
+- Before going live, add 20–30 real checks from different banks to `samples/samples.json` and run `python build_templates.py samples/samples.json`.
+- The digit **8** is not learned yet, so any check containing an 8 is flagged until one is added.
+- Some banks may not print the top line. Those checks have a single source and are always flagged.
+- The drawer name and address come from Hebrew Tesseract and may have small errors. They are for display only; the ID (which has a check digit) is what's validated.
+- The "31" in the branch field (`64731`) is kept as-is in `branch_field`; its meaning is unknown.
 
-## קבצים
+## Files
 
-| קובץ | מה |
+| File | What |
 |---|---|
-| `check_ocr.py` | המודול עצמו + CLI |
-| `api.py` | שירות FastAPI |
-| `build_templates.py` | בניית ספריית התבניות מצילומים מאומתים |
-| `e13b_templates.npz` | ספריית התבניות |
-| `samples/` | צילומים מאומתים + `samples.json`. **לא נשמרים ב-git** (מידע אישי של מושכים). הבדיקות ב-`tests/test_ocr.py` רצות רק כשהם קיימים מקומית |
-| `tests/test_ocr.py` | בדיקות |
+| `check_ocr.py` | the module and its CLI |
+| `api.py` | FastAPI service |
+| `build_templates.py` | builds the templates from verified photos |
+| `e13b_templates.npz` | the templates |
+| `samples/` | real verified photos and `samples.json` (git-ignored) |
+| `tests/` | tests, the synthetic check generator, the stress run |

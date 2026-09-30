@@ -20,9 +20,12 @@ import re
 import sys
 from dataclasses import dataclass, field, asdict
 
-import cv2
-import numpy as np
-import pytesseract
+# Tesseract עם כמה threads בכמה תהליכים במקביל נתקע. thread אחד לכל קריאה.
+os.environ.setdefault("OMP_THREAD_LIMIT", "1")
+
+import cv2  # noqa: E402
+import numpy as np  # noqa: E402
+import pytesseract  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 TEMPLATES_PATH = os.path.join(HERE, "e13b_templates.npz")
@@ -31,6 +34,7 @@ NORM_W = 1900          # רוחב השיק אחרי יישור
 GLYPH_W, GLYPH_H = 24, 32
 MIN_SHARPNESS = 20.0   # מתחת לזה התמונה מטושטשת מדי (כויל על טשטוש מלאכותי)
 MIN_NATIVE_W = 600     # רוחב שיק מינימלי בפיקסלים בצילום המקורי
+TESS_TIMEOUT = 8        # שניות לקריאת Tesseract. תמונה שנתקעת מסומנת לבדיקה
 MIN_GLYPH_SCORE = 0.55
 MIN_GLYPH_MARGIN = 0.05
 
@@ -44,6 +48,14 @@ BANKS = {
 
 
 # ---------- עזר ----------
+
+def _tess(img, lang, config):
+    """Tesseract עם הגבלת זמן. אם נתקע, מחזיר מחרוזת ריקה (והשדה יסומן כלא נקרא)."""
+    try:
+        return pytesseract.image_to_string(img, lang=lang, config=config, timeout=TESS_TIMEOUT)
+    except RuntimeError:
+        return ""
+
 
 def israeli_id_valid(s: str) -> bool:
     """ספרת ביקורת של ת"ז / ח.פ. ישראלי (9 ספרות)."""
@@ -294,7 +306,7 @@ def read_printed_line(gray):
     h, w = gray.shape
     region = gray[: int(0.45 * h), : int(0.65 * w)]
     for psm in (6, 4, 11):
-        txt = pytesseract.image_to_string(region, lang="eng", config=f"--psm {psm}")
+        txt = _tess(region, "eng", f"--psm {psm}")
         for line in txt.splitlines():
             m = PRINTED_RE.search(line.replace("O", "0"))
             if m:
@@ -307,9 +319,9 @@ def read_printed_line(gray):
 def read_drawer(gray):
     h, w = gray.shape
     region = gray[: int(0.32 * h), int(0.62 * w):]
-    heb = pytesseract.image_to_string(region, lang="heb", config="--psm 6")
-    nums = pytesseract.image_to_string(region, lang="eng",
-                                       config="--psm 6 -c tessedit_char_whitelist=0123456789-")
+    heb = _tess(region, "heb", "--psm 6")
+    nums = _tess(region, "eng",
+                                       "--psm 6 -c tessedit_char_whitelist=0123456789-")
     lines = [l.strip() for l in heb.splitlines() if re.search(r"[֐-׿]{2,}", l)]
     name = lines[0] if lines else None
     ids = [x for x in re.findall(r"(?<![\d-])\d{9}(?![\d-])", nums)]
@@ -419,7 +431,7 @@ def analyze(path_or_img, templates: Templates | None = None, branches=None, debu
                 reasons.append(f"סניף {branch} לא קיים בבנק {bank}")
         # הסניף מודפס גם בטקסט ("סניף 647")
         h, w = gray.shape
-        head = pytesseract.image_to_string(gray[: int(0.3 * h), : int(0.6 * w)], lang="heb+eng", config="--psm 6")
+        head = _tess(gray[: int(0.3 * h), : int(0.6 * w)], "heb+eng", "--psm 6")
         c["branch_in_header"] = bool(re.search(rf"(?<!\d){branch}(?!\d)", head))
         c["drawer_id_valid"] = drawer["id_valid"]
         if drawer["id"] and not drawer["id_valid"]:

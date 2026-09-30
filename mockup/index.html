@@ -152,6 +152,7 @@ td.num{font-variant-numeric:tabular-nums}
 .rcard{font:inherit;color:var(--ink);text-align:right;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:6px;cursor:pointer}
 .rcard.sel{border-color:var(--accent);box-shadow:inset -3px 0 0 var(--accent)}
 .rhead{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.paycell{margin-top:6px}
 .rf{display:grid;grid-template-columns:96px minmax(0,1fr);gap:8px;align-items:baseline;font-size:.92rem}
 .rf .k{color:var(--muted);font-size:.82rem}
 .tl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
@@ -397,7 +398,7 @@ function renderDone(d){const canUndo=d.closedAt&&Date.now()-d.closedAt<10*60*100
   <div class="ph-body">${pointHTML({...d,driver:route.driver})}${canUndo?`<button class="btn sec" id="undo">טעיתי, לפתוח מחדש (עד 10 דקות מהסגירה)</button>`:""}</div>`;
   phone.querySelector("#back").onclick=()=>{open=null;renderList()};
   if(canUndo)phone.querySelector("#undo").onclick=()=>{d.status="pending";delete d.res;delete d.lines;delete d.boxesDelivered;d.seq=null;d.closedAt=null;renderOffice();openStop(d.id)}}
-function showPayload(d){const idx=d.seq;const partial=d.status==="completed"&&d.boxesDelivered!==d.boxes;const o={event:d.status==="completed"?"delivery.completed":"delivery.failed",delivery_id:d.id,route_id:route.route_id,driver_id:route.driver_id,status:partial?"partial":d.status,completed_at:"2026-09-30T"+d.time+":00+03:00",actual_sequence:idx,boxes_expected:d.boxes,boxes_delivered:d.status==="completed"?d.boxesDelivered:0,point_url:"https://deliver.example.com/view/"+d.id};
+function showPayload(d){const idx=d.seq;const partial=d.status==="completed"&&d.boxesDelivered!==d.boxes;d.rev=(d.rev||0)+1;const o={event:d.status==="completed"?"delivery.completed":"delivery.failed",delivery_id:d.id,revision:d.rev,route_id:route.route_id,driver_id:route.driver_id,status:partial?"partial":d.status,completed_at:"2026-09-30T"+d.time+":00+03:00",actual_sequence:idx,boxes_expected:d.boxes,boxes_delivered:d.status==="completed"?d.boxesDelivered:0,point_url:"https://deliver.example.com/view/"+d.id};
   if(d.status==="completed"){o.proof_of_delivery={photos:d.res.photos.map((_,i)=>({url:`https://files.example.com/${d.id}/pod_${i+1}.jpg`})),signature:{url:`https://files.example.com/${d.id}/signature.png`,signer_name:d.res.signer}};
     o.payments=linesOf(d).map((l,i)=>({line:i+1,method:l.type,amount:l.amount,status:"to_review",
       ...(l.photo?{photo_url:`https://files.example.com/${d.id}/payment_${i+1}.jpg`}:{}),
@@ -415,12 +416,11 @@ function fmtDate(x){if(!x)return "";const [y,m,d]=x.split("-");return `${d}.${m}
 function cellLink(r){const t=r.status==="completed"?"נמסר":r.status==="failed"?"לא נמסר":"בדרך";return `<a class="stlink ${r.status}" href="#" data-open="${r.id}">${t}</a>`}
 function linkOf(id){return "deliver.example.com/s/"+id.slice(-6)+"x7Q"}
 function renderOffice(){const rows=allRows();
-  document.getElementById("kpis").innerHTML=`<div class="kpi" style="flex-basis:100%"><span>שתי עמודות חדשות במערכת הראשית: <strong>"מסירה"</strong> (סטטוס + קישור, מתעדכנת לבד) ו<strong>"תשלום מהשטח"</strong>, שממתין לאישור. רק לחיצה על "אשר והזן" כותבת את התשלומים לשורות התשלום הקיימות.</span></div>`;
+  document.getElementById("kpis").innerHTML=`<div class="kpi" style="flex-basis:100%"><span>עמודה חדשה אחת במערכת הראשית: <strong>"מסירה"</strong>. היא מתעדכנת לבד: קישור לנקודה, נמסר / לא נמסר, והתשלום שנגבה. התשלום נכתב לשורות התשלום הקיימות רק בלחיצה על "אשר והזן".</span></div>`;
   document.getElementById("rows").innerHTML=rows.map(r=>{const ls=linesOf(r),paid=r.status==="completed"&&ls.length;
     return `<div class="rcard ${r.id===sel?"sel":""}" data-id="${r.id}" role="button" tabindex="0">
     <div class="rhead"><b class="num">${r.id}</b><span class="sub">${r.cust}</span></div>
-    <div class="rf"><span class="k">מסירה</span>${cellLink(r)}</div>
-    <div class="rf"><span class="k">תשלום מהשטח</span>${paid?`<span>${recvText(r)}${r.reviewed?'<span class="st completed">הוזן לשורות התשלום</span>':`<span class="row" style="margin-top:6px"><button class="chip approve" data-approve="${r.id}">אשר והזן</button><span class="sub">בדוק מול הצילום בקישור</span></span>`}</span>`:'<span class="sub">—</span>'}</div></div>`}).join("");
+    <div class="rf"><span class="k">מסירה</span><span>${cellLink(r)}${paid?`<div class="paycell">${recvText(r)}${r.reviewed?'<span class="st completed">הוזן לשורות התשלום</span>':`<span class="row" style="margin-top:6px"><button class="chip approve" data-approve="${r.id}">אשר והזן</button><span class="sub">לבדיקה</span></span>`}</div>`:""}</span></div></div>`}).join("");
   document.querySelectorAll("#rows .rcard").forEach(c=>c.onclick=e=>{e.preventDefault();const ap=e.target.closest("[data-approve]");
     if(ap){const id=ap.dataset.approve;const d=byId(id)||others.find(o=>o.id===id);d.reviewed=true;sel=id;renderOffice();return}
     sel=c.dataset.id;renderOffice()});

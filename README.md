@@ -1,48 +1,68 @@
 # Driver App ABC
 
-אפליקציית מסירות לנהגים, שמתחברת למערכת הראשית הקיימת לפי מספר מסירה (ID).
+A delivery app for drivers that plugs into our existing main system by **delivery ID**.
 
-- **הנהג** מקבל קישור ובו רואה את הנקודות שלו. בכל נקודה הוא מסמן ארגזים, מצלם מסירה ומחתים את הלקוח, רושם תשלום (שיק עם OCR, מזומן או אשראי) ומצלם חזרות אם יש.
-- **המערכת הראשית** מקבלת חזרה לכל ID קישור לנקודה, נמסר או לא נמסר, ושורות "תשלום מהשטח" בסטטוס "לבדיקה". הצוות מאשר אותן בלחיצה ("אשר והזן").
-- **הצוות** לא נכנס לאפליקציית הנהגים. הוא עובד מהמערכת הראשית, והקישור לנקודה משותף לו ולנהג.
+## The idea in one minute
 
-## מה יש כאן
+1. The main system already creates a unique ID for every delivery. It sends the driver's deliveries to this app.
+2. The driver gets a link. For each delivery the driver:
+   - confirms the boxes
+   - takes a delivery photo and gets the customer's signature
+   - records the payment: check (photo, with OCR), cash (photo) or credit (just the amount)
+   - optionally photographs returns
+3. **One new column in the main system, "Delivery", gets everything back for each ID:**
 
-| תיקייה | מה | מצב |
-|---|---|---|
-| [`docs/plan.md`](docs/plan.md) | התכנון המלא: נתונים, מסכים, חיבור, החלטות ושאלות פתוחות | מוכן |
-| [`docs/test-report.md`](docs/test-report.md) | בדיקות על ההדמיה: בתור נהג, בתור צוות, וטכני | מוכן |
-| [`mockup/index.html`](mockup/index.html) | הדמיה עובדת של אפליקציית הנהג ושל העמודות במערכת הראשית. קובץ אחד שנפתח בדפדפן | הדמיה בלבד |
-| [`api/openapi.yaml`](api/openapi.yaml) | מפרט ה-API: מסירות פנימה, קישור, סטטוס ותשלומים החוצה | טיוטה לפיתוח |
-| [`ocr/`](ocr/README.md) | OCR לשיקים ב-Python + שירות FastAPI + בדיקות | עובד, צריך כיול על עוד שיקים |
+| When | What the "Delivery" column shows |
+|---|---|
+| Sent to the driver | A link to the delivery page, labeled "On the way" |
+| Driver closes the delivery | "Delivered" or "Not delivered" (same link) |
+| Payment was collected | The payment summary, marked **"To review"**, and an **"Approve"** button |
 
-## ההדמיה
+4. Clicking **Approve** writes the payment into the **existing payment rows**. Nothing touches the payment rows before that, because check details come from OCR and a person checks them first.
 
-`mockup/index.html` רץ כולו בדפדפן:
-- אין שרת, ורענון מאפס את הנתונים.
-- ה-OCR בהדמיה מדומה.
-- לא נשלחים קישורים או הודעות באמת.
+The same link works for the driver and the office. The office never opens the driver app.
 
-ההדמיה מראה את המסכים והלוגיקה: מסך הנהלים, רשימת הנקודות, האשף (ארגזים, מסירה וחתימה, תשלום, חזרות), סיכום ביניים וסיכום יום, והעמודות במערכת הראשית.
+## What to build
 
-## מה נשאר לבנות
+1. **Server:** implements [`api/openapi.yaml`](api/openapi.yaml).
+   - database
+   - photo storage
+   - tokenized links
+   - an outbound queue to the main system: retries, idempotent by `delivery_id` + `revision`, read-back check, alert on failure
+2. **Driver app (PWA):** follow [`mockup/index.html`](mockup/index.html). It must work offline and sync when the signal is back.
+3. **Main system integration**, through its official API only:
+   - read the deliveries
+   - write the "Delivery" column
+   - on Approve, create the payment rows
+4. **Check OCR:** already written in [`ocr/`](ocr/README.md) (Python + FastAPI). Run it on our server and calibrate it on 20–30 real check photos.
 
-1. **שרת:** ה-endpoints מ-`api/openapi.yaml`, בסיס נתונים, אחסון תמונות, קישורים עם טוקן, ותור שליחה למערכת הראשית עם ניסיונות חוזרים ומניעת כפילויות.
-2. **אפליקציית הנהג כ-PWA:** לפי ההדמיה, כולל שמירה בטלפון ושליחה כשחוזרת קליטה.
-3. **חיבור למערכת הראשית:**
-   - קריאה של המסירות לנהג.
-   - כתיבה של עמודת "מסירה" (קישור, ואחר כך נמסר או לא נמסר).
-   - כתיבה של עמודת "תשלום מהשטח", וכפתור "אשר והזן" שיוצר את שורות התשלום.
-4. **כיול ה-OCR** על 20–30 צילומי שיקים אמיתיים מבנקים שונים (ראו `ocr/README.md`).
-5. **פיילוט** עם נהג אחד, במקביל לעבודה הידנית.
+## What's in the repo
 
-## שאלות פתוחות
+| Path | What |
+|---|---|
+| `mockup/index.html` | Clickable mockup, one file. Open it in a browser. The second tab ("מה חוזר למערכת הראשית") shows the column. |
+| `api/openapi.yaml` | API spec. The webhook schema matches exactly what the mockup sends; a test checks this. |
+| `ocr/` | Check OCR, service and tests |
+| `docs/` | Full plan and test report (Hebrew) |
 
-- איך מכניסים ומוציאים נתונים מהמערכת הראשית: API, ייבוא קובץ, או משהו אחר?
-- מאיפה מגיע היום השיוך של מסירה לנהג?
-- מה המשמעות של ה-"31" בשדה הסניף ב-MICR (`647` + `31`)?
-- אשראי: נכנס אוטומטית כ"אושר", או כ"לבדיקה" מול דו"ח הסליקה?
+## Tests
 
-## פרטיות
+```bash
+# mockup + API contract (Playwright)
+npm install && npx playwright install chromium && npm run test:mockup
 
-צילומי שיקים אמיתיים לא נשמרים ב-git, כי יש בהם שם, ת"ז ומספר חשבון של המושך. הם נשמרים מקומית ב-`ocr/samples/`, שמופיעה ב-`.gitignore`. בכל המסמכים כאן המספרים הם ערכי דוגמה.
+# OCR (needs tesseract-ocr + tesseract-ocr-heb)
+cd ocr && pip install -r requirements.txt && pytest
+```
+
+GitHub Actions runs both on every push (`.github/workflows/tests.yml`).
+
+## Open questions (need an answer before building)
+
+- How do we read from and write to the main system: an API, file import, or something else?
+- Where does the delivery-to-driver assignment come from today?
+- In the MICR line, what does the "31" after the branch mean (`647` + `31`)?
+
+## Privacy
+
+Real check photos are never committed: they contain the drawer's name, ID and account. Put them in `ocr/samples/`, which is git-ignored. All numbers in the docs are placeholders.
