@@ -132,7 +132,21 @@ input[type=text],input[type=number],input[type=date]{width:100%;padding:10px;bor
 .explain{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:0}
 .office{display:grid;grid-template-columns:1fr;gap:14px;align-items:start}
 @media (min-width:900px){.office-wrap{max-width:1100px;margin:0 auto;padding-top:24px}.office{grid-template-columns:minmax(0,1fr) minmax(0,380px)}.panel{position:sticky;top:calc(env(safe-area-inset-top,0px) + 70px)}}
-.cards{display:flex;flex-direction:column;gap:8px;min-width:0}
+.cards{min-width:0;overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:12px}
+.mtable{border-collapse:collapse;width:100%;min-width:560px;font-size:.9rem}
+.mtable th,.mtable td{padding:10px;text-align:start;vertical-align:top;border-bottom:1px solid var(--line)}
+.mtable th{font-size:.8rem;color:var(--muted);font-weight:600;background:var(--sunk);white-space:nowrap}
+.mtable th.new{background:var(--accent);color:var(--accent-ink)}
+.mtable th.new small{display:block;font-weight:400;opacity:.85}
+.mtable td.new{background:color-mix(in srgb,var(--accent) 6%,var(--surface))}
+.mtable td.old{color:var(--muted)}
+.mtable tr.rcard{display:table-row;padding:0;border:0;border-radius:0;background:none;box-shadow:none;cursor:pointer}
+.mtable tr.rcard:hover td{background-image:linear-gradient(rgba(0,0,0,.02),rgba(0,0,0,.02))}
+.mtable tr.rcard.sel td{box-shadow:inset 0 2px 0 var(--accent),inset 0 -2px 0 var(--accent)}
+.mtable tr:last-child td{border-bottom:0}
+.mtable .nw{white-space:nowrap}
+@media (max-width:599px){.mtable{min-width:0;font-size:.85rem}.mtable .opt{display:none}.mtable th,.mtable td{padding:8px 6px}}
+.num{font-variant-numeric:tabular-nums}
 .rcard{color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:6px;cursor:pointer}
 .rcard.sel{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
 [dir=rtl] .rcard.sel{box-shadow:inset -3px 0 0 var(--accent)}
@@ -269,9 +283,11 @@ const S={
  sent:{en:"Delivery sent to the main system",he:"המסירה נשלחה למערכת הראשית"},
  undo:{en:"My mistake, reopen (up to 10 minutes after closing)",he:"טעיתי, לפתוח מחדש (עד 10 דקות מהסגירה)"},
  stPending:{en:"On the way",he:"בדרך"}, stDone:{en:"Delivered",he:"נמסר"}, stFailed:{en:"Not delivered",he:"לא נמסר"}, stPartial:{en:"Partly delivered",he:"נמסר חלקית"},
- officeExplain:{en:"One new column in the main system: \"Delivery\". It updates by itself: the delivery link, delivered / not delivered, and the payment collected. The payment goes into the existing payment rows only when someone clicks \"Approve\".",
-                he:"עמודה חדשה אחת במערכת הראשית: \"מסירה\". היא מתעדכנת לבד: קישור לנקודה, נמסר / לא נמסר, והתשלום שנגבה. התשלום נכתב לשורות התשלום הקיימות רק בלחיצה על \"אשר והזן\"."},
- colDelivery:{en:"Delivery",he:"מסירה"},
+ officeExplain:{en:"Your existing deliveries table (grey) gets two new columns (green). They fill in by themselves from the driver app. \"Delivery status\" links to the delivery page. \"Driver payment\" is only a note until someone clicks \"Approve\", which writes it into the existing payment rows. Click a row to see its photos.",
+                he:"לטבלת המסירות הקיימת שלכם (אפור) נוספות שתי עמודות חדשות (ירוק). הן מתמלאות לבד מאפליקציית הנהג. \"סטטוס מסירה\" מקשר לדף המסירה. \"תשלום מהנהג\" הוא רק הערה עד לחיצה על \"אשר והזן\", שכותבת אותו לשורות התשלום הקיימות. לחיצה על שורה מציגה את התמונות."},
+ colId:{en:"Delivery ID",he:"מס' מסירה"}, colCust:{en:"Customer",he:"לקוח"}, colAmount:{en:"Amount",he:"סכום"}, colDriver:{en:"Driver",he:"נהג"},
+ colStatus:{en:"Delivery status",he:"סטטוס מסירה"}, colPay:{en:"Driver payment",he:"תשלום מהנהג"}, newCol:{en:"new column",he:"עמודה חדשה"},
+ prepaid:{en:"Prepaid",he:"שולם מראש"},
  approve:{en:"Approve",he:"אשר והזן"}, toReview:{en:"To review",he:"לבדיקה"}, entered:{en:"Entered in payment rows",he:"הוזן לשורות התשלום"},
  pickRow:{en:"Pick a delivery",he:"בחר מסירה"},
  doneAt:{en:"Delivered at {0}",he:"נמסר ב-{0}"}, notYet:{en:"Waiting to leave",he:"ממתין ליציאה"},
@@ -476,19 +492,21 @@ function renderDone(d){const canUndo=d.closedAt&&Date.now()-d.closedAt<10*60*100
   phone.querySelector("#back").onclick=()=>{open=null;renderList()};
   if(canUndo)phone.querySelector("#undo").onclick=()=>{d.status="pending";delete d.res;delete d.lines;delete d.boxesDelivered;d.seq=null;d.closedAt=null;renderOffice();openStop(d.id)}}
 
-/* ---------- main system: one "Delivery" column ---------- */
+/* ---------- main system: two new columns in the existing table ---------- */
 function allRows(){return [...order.map(id=>({...byId(id),driver:driver.name})),...others]}
 function fmtDate(x){if(!x)return "";const [y,m,d]=x.split("-");return `${d}.${m}.${y}`}
-function lineText(l){return l.type==="check"?`<b>${t("check")} ${l.checkNum||""}</b> · <span class="ltr">${l.bank}/${l.branch}/${l.account}</span> · ${fmtDate(l.dueDate)} · ${fmt(l.amount)}`:`<b>${payLabel(l.type)}</b> · ${fmt(l.amount)}`}
+function lineText(l){return l.type==="check"?`<b>${t("check")}</b> <span class="ltr">${l.checkNum||""}</span> · ${fmtDate(l.dueDate)} · ${fmt(l.amount)}`:`<b>${payLabel(l.type)}</b> · ${fmt(l.amount)}`}
 function statusText(r){return r.status==="completed"?t("stDone"):r.status==="failed"?t("stFailed"):t("stPending")}
 function cellLink(r){return `<a class="stlink ${r.status}" href="#" data-open="${r.id}">${statusText(r)}</a>`}
 function linkOf(id){return "deliver.example.com/s/"+id.slice(-6)+"x7Q"}
 function renderOffice(){const rows=allRows();
   document.getElementById("kpis").textContent=t("officeExplain");
-  document.getElementById("rows").innerHTML=rows.map(r=>{const ls=linesOf(r),paid=r.status==="completed"&&ls.length;
-    return `<div class="rcard ${r.id===sel?"sel":""}" data-id="${r.id}" role="button" tabindex="0">
-    <div class="rhead"><b class="num">${r.id}</b><span class="sub">${L(r.cust)}</span></div>
-    <div class="rf"><span class="k">${t("colDelivery")}</span><span>${cellLink(r)}${paid?`<div class="paycell">${ls.map(l=>`<div>${lineText(l)}</div>`).join("")}${r.reviewed?`<span><span class="st completed">${t("entered")}</span></span>`:`<span class="row" style="margin-top:6px"><button class="chip approve" data-approve="${r.id}">${t("approve")}</button><span class="sub">${t("toReview")}</span></span>`}</div>`:""}</span></div></div>`}).join("");
+  const th=(k,n)=>n?`<th class="new">${t(k)}<small>${t("newCol")}</small></th>`:`<th>${t(k)}</th>`;
+  document.getElementById("rows").innerHTML=`<table class="mtable"><thead><tr>${th("colId")}${th("colCust")}${th("colDriver").replace("<th","<th class=\"opt\"")}${th("colAmount").replace("<th","<th class=\"opt\"")}${th("colStatus",1)}${th("colPay",1)}</tr></thead><tbody>`+rows.map(r=>{const ls=linesOf(r),paid=r.status==="completed"&&ls.length;
+    const pay=paid?`<div class="paycell" style="margin:0">${ls.map(l=>`<div>${lineText(l)}</div>`).join("")}${r.reviewed?`<span><span class="st completed">${t("entered")}</span></span>`:`<span class="row" style="margin-top:6px"><button class="chip approve" data-approve="${r.id}">${t("approve")}</button><span class="sub">${t("toReview")}</span></span>`}</div>`:(r.status==="completed"&&!r.amount?`<span class="sub">${t("prepaid")}</span>`:"");
+    return `<tr class="rcard ${r.id===sel?"sel":""}" data-id="${r.id}" tabindex="0">
+    <td class="old num nw"><b style="color:var(--ink)">${r.id}</b></td><td class="old">${L(r.cust)}</td><td class="old opt">${L(r.driver)}</td><td class="old num opt">${fmt(r.amount||0)}</td>
+    <td class="new">${cellLink(r)}${r.status==="completed"&&r.time?`<div class="sub">${r.time}</div>`:r.status==="failed"&&r.reason?`<div class="sub">${t("reasons")[r.reason]}</div>`:""}</td><td class="new">${pay}</td></tr>`}).join("")+`</tbody></table>`;
   document.querySelectorAll("#rows .rcard").forEach(c=>c.onclick=e=>{e.preventDefault();const ap=e.target.closest("[data-approve]");
     if(ap){const id=ap.dataset.approve;const d=byId(id)||others.find(o=>o.id===id);d.reviewed=true;sel=id;renderOffice();return}
     sel=c.dataset.id;renderOffice();

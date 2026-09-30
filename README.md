@@ -15,10 +15,9 @@ Open [`mockup/index.html`](mockup/index.html) in a browser, or on a phone. Use t
    - an optional photo of returns
 4. A strip at the top always shows the number of checks, the cash total and how many deliveries are done. An interim or day summary is always one tap away.
 
-**Main system:** one new column, "Delivery", per delivery ID. It holds:
-- a link to the delivery page
-- delivered / not delivered
-- the payment collected, marked "To review", with an **Approve** button that writes it into the existing payment rows
+**Main system:** your existing deliveries table stays as it is and gets **two new columns** per delivery ID:
+- **Delivery status**: on the way / delivered (with time) / not delivered (with reason). It links to the delivery page with the photos and signature.
+- **Driver payment**: what the driver collected (check, cash or credit, one or more lines), marked "To review", with an **Approve** button that writes it into the existing payment rows. Empty until the delivery is done.
 
 Everything in the mockup runs in the browser with sample data. Nothing is saved or sent anywhere, and check reading is faked.
 
@@ -26,7 +25,7 @@ Everything in the mockup runs in the browser with sample data. Nothing is saved 
 
 The developer owns the API, check reading and the backend (.NET). The mockup only defines the UI and the behavior.
 
-`api/` and `ocr/` are earlier drafts made without knowledge of the existing system. They are **not** requirements, and it is fine to ignore or delete them.
+`ocr/` is an earlier draft made without knowledge of the existing system. It is **not** a requirement, and it is fine to ignore or delete it.
 
 ## Mockup tests
 

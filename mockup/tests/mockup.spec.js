@@ -272,6 +272,9 @@ test('staff view: new columns only, approve marks payment reviewed', async ({ pa
   await page.goto(URL);
   await page.click('#lang-he');
   await page.click('#tab-office');
+  await expect(page.locator('.mtable th.new')).toHaveCount(2);
+  await expect(page.locator('.mtable th.new').nth(0)).toContainText('סטטוס מסירה');
+  await expect(page.locator('.mtable th.new').nth(1)).toContainText('תשלום מהנהג');
   const card = page.locator('.rcard[data-id="DLV-558812"]');
   await expect(card).toContainText('אשר והזן');
   await page.click('[data-approve="DLV-558812"]');
