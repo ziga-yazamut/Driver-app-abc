@@ -23,6 +23,7 @@ async function start(page, { acceptTerms = true } = {}) {
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto(URL);
+  await page.click('#lang-he');
   await page.uncheck('#preview'); // כל כללי החובה פעילים
   if (acceptTerms) {
     for (const i of [0, 1, 2]) await page.check('#rule-' + i);
@@ -144,7 +145,7 @@ test('underpay requires a reason; zero and empty lines are blocked', async ({ pa
   await page.fill('[data-l="0"][data-f="amount"]', '500');
   await page.click('[data-ldemo="0"]');
   expect(await nextDisabled(page)).toBe(true);
-  await page.click('[data-diff="ישלים בהמשך"]');
+  await page.click('[data-diff="later"]');
   expect(await nextDisabled(page)).toBe(false);
   await page.fill('[data-l="0"][data-f="amount"]', '0');
   expect(await nextDisabled(page)).toBe(true);
@@ -221,7 +222,7 @@ test('not delivered: reason is required and recorded', async ({ page }) => {
   await start(page);
   await page.click('.stop[data-id="DLV-558817"] .c');
   await page.click('#fail');
-  await page.click('[data-reason="הלקוח לא נמצא"]');
+  await page.click('[data-reason="absent"]');
   const d = await D(page, 'DLV-558817');
   expect(d.status).toBe('failed');
 });
@@ -269,6 +270,7 @@ test('staff view: new columns only, approve marks payment reviewed', async ({ pa
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto(URL);
+  await page.click('#lang-he');
   await page.click('#tab-office');
   const card = page.locator('.rcard[data-id="DLV-558812"]');
   await expect(card).toContainText('אשר והזן');
@@ -296,6 +298,7 @@ test('no horizontal scroll, light theme even in dark mode', async ({ browser }) 
   const ctx = await browser.newContext({ ...devices['Pixel 5'], colorScheme: 'dark' });
   const page = await ctx.newPage();
   await page.goto(URL);
+  await page.click('#lang-he');
   for (const tab of ['#tab-driver', '#tab-office']) {
     await page.click(tab);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
@@ -321,4 +324,79 @@ test('taps respond fast on a slow phone (CPU x6)', async ({ page, context }) => 
   test.info().annotations.push({ type: 'perf', description: `load ${load}ms, taps ${times.join('/')}ms` });
   expect(load).toBeLessThan(5000);
   expect(Math.max(...times)).toBeLessThan(1500);
+});
+
+// ---------- שפה ----------
+
+test('language switch: English is LTR, Hebrew is RTL, no Hebrew left in English', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto(URL);
+  await page.click('#lang-en');
+  expect(await page.getAttribute('html', 'dir')).toBe('ltr');
+  const heb = /[\u0590-\u05FF]/;
+  const visibleHebrew = async () => (await page.evaluate(() => document.body.innerText)).split('\n').filter((l) => /[\u0590-\u05FF]/.test(l) && l.trim() !== 'עב');
+  // every screen in English
+  expect(await visibleHebrew()).toEqual([]);
+  for (const i of [0, 1, 2]) await page.check('#rule-' + i);
+  await page.click('#accept');
+  expect(await visibleHebrew()).toEqual([]);
+  await page.click('.stop[data-id="DLV-558820"] .c');
+  await page.click('#fail');
+  expect(await visibleHebrew()).toEqual([]);
+  await page.click('#fail');
+  await page.click('#next');
+  await page.click('[data-add="check"]');
+  await page.click('[data-ldemo="0"]');
+  await page.click('[data-ocr="0"]');
+  await page.click('[data-add="cash"]');
+  expect(await visibleHebrew()).toEqual([]);
+  await page.click('#next');
+  expect(await visibleHebrew()).toEqual([]);
+  await page.click('#next');
+  await page.click('#eod');
+  expect(await visibleHebrew()).toEqual([]);
+  await page.click('#tab-office');
+  expect(await visibleHebrew()).toEqual([]);
+  await page.click('#lang-he');
+  expect(await page.getAttribute('html', 'dir')).toBe('rtl');
+  expect(heb.test(await page.textContent('#kpis'))).toBe(true);
+  expect(errors).toEqual([]);
+});
+
+test('language switch keeps the driver on the same screen and draft', async ({ page }) => {
+  await start(page);
+  await deliverStep(page, 'DLV-558813');
+  await page.click('[data-add="cash"]');
+  await page.click('#lang-en');
+  await expect(page.locator('[data-l="0"][data-f="amount"]')).toHaveValue('1890');
+  await expect(page.locator('#next')).toHaveText('Next');
+});
+
+// ---------- מובייל ----------
+
+test('mobile: the driver app starts right under the top bar and fills the width', async ({ page }) => {
+  await page.goto(URL);
+  const vw = await page.evaluate(() => document.documentElement.clientWidth);
+  const box = await page.locator('#phone').boundingBox();
+  expect(box.width).toBeGreaterThan(vw - 2);
+  expect(box.y).toBeLessThan(100);
+  for (const sel of ['#accept', '#rule-0']) {
+    const b = await page.locator(sel).boundingBox();
+    expect(b.height).toBeGreaterThanOrEqual(24);
+  }
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+});
+
+test('mobile: tap targets in the wizard are at least 40px', async ({ page }) => {
+  await start(page);
+  await page.click('.stop[data-id="DLV-558820"] .c');
+  for (const sel of ['#bx-minus', '#bx-plus', '#next', '.bigbtn']) {
+    const b = await page.locator(sel).first().boundingBox();
+    expect(b.height, sel).toBeGreaterThanOrEqual(40);
+  }
+  await page.click('#back');
+  await deliverStep(page, 'DLV-558820');
+  const b = await page.locator('[data-add="cash"]').boundingBox();
+  expect(b.height).toBeGreaterThanOrEqual(40);
 });

@@ -1,66 +1,77 @@
-<title>הדמיית אפליקציית מסירות</title>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Driver App Mockup</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700&family=Secular+One&display=swap">
 <style>
-/* Layout: a tab bar switches between a phone-framed driver app and a wide office table; both read one shared in-memory state. */
+/* Layout: mobile-first. On a phone the driver app fills the screen under a slim sticky bar (view + language).
+   From 900px the driver app sits in a centered phone-width column with notes beside it. Fixed light theme by request. */
 :root{
   --bg:#eef1ee; --surface:#ffffff; --sunk:#e3e8e4; --ink:#17211d; --muted:#5b6862; --line:#cfd8d2;
-  --accent:#0f6b5c; --accent-ink:#ffffff; --signal:#c98a00; --ok:#1f7a3e; --bad:#b3372b;
+  --accent:#0f6b5c; --accent-ink:#ffffff; --signal:#9a6a00; --ok:#1f7a3e; --bad:#b3372b;
   color-scheme:light;
   --display:"Secular One","Assistant",system-ui,sans-serif; --body:"Assistant",system-ui,sans-serif;
 }
 *{box-sizing:border-box}
 [hidden]{display:none!important}
-body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5;padding-inline:16px;padding-block:20px 40px}
-.wrap{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
-h1{font-family:var(--display);font-weight:400;font-size:1.7rem;margin:0;text-wrap:balance}
-.sub{color:var(--muted);margin:0}
-.tabs{display:flex;gap:6px;background:var(--sunk);padding:4px;border-radius:10px;width:fit-content;flex-wrap:wrap}
-.tabs button{font:inherit;font-weight:600;border:0;background:transparent;color:var(--muted);padding:8px 16px;border-radius:7px;cursor:pointer}
-.tabs button[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}
-button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+html,body{background:var(--bg);color:var(--ink)}
+body{margin:0;font-family:var(--body);font-size:16px;line-height:1.5;padding-inline:0;padding-block:0 32px}
+button,input{font:inherit}
+button:focus-visible,input:focus-visible,a:focus-visible,[role=button]:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
-/* ---------- driver phone ---------- */
-.stage{display:grid;grid-template-columns:minmax(0,380px) minmax(0,1fr);gap:28px;align-items:start}
-@media (max-width:760px){.stage{grid-template-columns:1fr}}
-.phone{background:var(--surface);border:1px solid var(--line);border-radius:28px;overflow:hidden;min-height:680px;display:flex;flex-direction:column;max-width:380px;width:100%}
-.ph-head{background:var(--accent);color:var(--accent-ink);padding:18px 18px 14px;display:flex;flex-direction:column;gap:4px}
-.ph-head .t{font-family:var(--display);font-size:1.25rem}
-.ph-head .m{opacity:.85;font-size:.9rem}
+/* ---------- top bar ---------- */
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--surface);border-bottom:1px solid var(--line);padding:8px 16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.bar .name{font-family:var(--display);font-size:1.05rem;margin-inline-end:auto;white-space:nowrap}
+@media (max-width:520px){.bar .name{display:none}.bar{justify-content:space-between}}
+.seg{display:inline-flex;background:var(--sunk);border-radius:9px;padding:3px;gap:2px}
+.seg button{border:0;background:transparent;color:var(--muted);font-weight:600;padding:6px 12px;border-radius:7px;cursor:pointer;font-size:.9rem;min-height:36px}
+.seg button[aria-pressed="true"],.seg button[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.demo{display:flex;gap:8px;align-items:center;padding:6px 16px;font-size:.85rem;color:var(--muted);background:var(--sunk);border-bottom:1px solid var(--line)}
+.demo input{width:18px;height:18px;accent-color:var(--accent);flex:none}
+.demo label{display:flex;gap:8px;align-items:center;cursor:pointer}
+
+/* ---------- views ---------- */
+.stage{display:flex;flex-direction:column;gap:16px}
+.phone{background:var(--surface);display:flex;flex-direction:column;min-height:calc(100dvh - 110px);width:100%}
+.notes{display:flex;flex-direction:column;gap:12px;padding-inline:16px}
+@media (min-width:900px){
+  .stage{flex-direction:row;justify-content:center;align-items:flex-start;gap:28px;padding:24px 16px 0}
+  .phone{max-width:400px;min-height:720px;border:1px solid var(--line);border-radius:28px;overflow:hidden;flex:none}
+  .notes{max-width:440px;padding:0}
+}
+
+/* ---------- driver app ---------- */
+.ph-head{background:var(--accent);color:var(--accent-ink);padding:14px 16px 12px;display:flex;flex-direction:column;gap:4px}
+.ph-head .t{font-family:var(--display);font-size:1.25rem;line-height:1.3}
+.ph-head .m{opacity:.9;font-size:.9rem}
+.ph-head a{color:inherit}
 .prog{height:6px;background:rgba(255,255,255,.25);border-radius:3px;overflow:hidden;margin-top:6px}
 .prog i{display:block;height:100%;background:var(--accent-ink);transition:width .3s}
-.tally{display:grid;grid-template-columns:repeat(3,1fr);background:var(--sunk);border-bottom:1px solid var(--line);position:sticky;top:env(safe-area-inset-top,0px);z-index:2}
+.tally{display:grid;grid-template-columns:repeat(3,1fr);background:var(--sunk);border-bottom:1px solid var(--line)}
 .tally div{display:flex;flex-direction:column;align-items:center;padding:8px 4px}
 .tally b{font-variant-numeric:tabular-nums;font-size:1.05rem}
 .tally span{font-size:.75rem;color:var(--muted)}
+.ph-body{padding:14px 16px;display:flex;flex-direction:column;gap:12px;flex:1}
 .wiz{gap:14px}
-.q{font-family:var(--display);font-size:1.3rem;text-align:center}
+.q{font-family:var(--display);font-size:1.25rem;text-align:center}
 .counter{display:flex;align-items:center;justify-content:center;gap:24px}
 .counter b{font-size:2.6rem;font-variant-numeric:tabular-nums;min-width:2ch;text-align:center}
-.cbtn{font:inherit;font-size:1.8rem;width:56px;height:56px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
-.bigfile{display:flex;flex-direction:column;gap:6px;align-items:stretch}
+.cbtn{font-size:1.8rem;width:56px;height:56px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+.bigfile{display:flex;flex-direction:column;gap:6px}
 .bigfile input{position:absolute;opacity:0;width:1px;height:1px}
-.bigbtn{display:block;text-align:center;font-weight:700;font-size:1.1rem;padding:22px;border:2px dashed var(--accent);border-radius:14px;color:var(--accent);cursor:pointer;background:var(--surface)}
+.bigbtn{display:block;text-align:center;font-weight:700;font-size:1.1rem;padding:20px;border:2px dashed var(--accent);border-radius:14px;color:var(--accent);cursor:pointer;background:var(--surface)}
 .bigfile .small{align-self:center}
 .paygrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.paybtn{font:inherit;font-weight:700;font-size:1.05rem;padding:16px 6px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
+.paybtn{font-weight:700;font-size:1.05rem;padding:16px 6px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;min-height:56px}
 .paybtn small{font-weight:400;font-size:.72rem;color:var(--muted)}
-.paybtn[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
-.paybtn[aria-pressed="true"] small{color:inherit}
-.amtline{text-align:center}
-.ocr{background:var(--sunk);border-radius:10px;padding:10px 12px;font-size:.9rem}
 .dots{display:flex;gap:4px;margin-top:8px}
 .dots span{flex:1;font-size:.72rem;text-align:center;padding-top:6px;border-top:3px solid rgba(255,255,255,.3);opacity:.75}
 .dots span.done{border-color:var(--accent-ink);opacity:.9}
 .dots span.cur{border-color:var(--accent-ink);opacity:1;font-weight:700}
-.wizfoot{display:flex;gap:8px;padding:12px 14px;border-top:1px solid var(--line);background:var(--surface);position:sticky;bottom:0}
-.btn.sec2{background:var(--sunk);color:var(--ink);width:auto;padding-inline:20px}
-.rule{display:flex;gap:12px;align-items:center;padding:12px;border:1px solid var(--line);border-radius:12px;cursor:pointer;font-size:.98rem}
+.wizfoot{display:flex;gap:8px;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line);background:var(--surface);position:sticky;bottom:0}
+.rule{display:flex;gap:12px;align-items:center;padding:12px;border:1px solid var(--line);border-radius:12px;cursor:pointer}
 .rule.ok{border-color:var(--ok)}
 .rule input{width:24px;height:24px;flex:none;accent-color:var(--accent)}
-.ph-body{padding:14px;display:flex;flex-direction:column;gap:10px;flex:1}
-.stop{display:grid;grid-template-columns:28px 32px minmax(0,1fr) auto;gap:10px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 10px;cursor:pointer;text-align:right}
-.stop:hover{border-color:var(--accent)}
+.stop{display:grid;grid-template-columns:24px 30px minmax(0,1fr) auto;gap:10px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 10px;cursor:pointer}
 .stop .h{cursor:grab;color:var(--muted);font-size:1.2rem;text-align:center;user-select:none;touch-action:none}
 .stop .n{width:30px;height:30px;border-radius:50%;background:var(--sunk);display:grid;place-items:center;font-weight:700;font-variant-numeric:tabular-nums}
 .stop.done{background:var(--sunk)}
@@ -69,74 +80,35 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(-
 .stop .c{min-width:0}
 .stop .c b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .stop .c span{color:var(--muted);font-size:.88rem}
-.amt{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.amt{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;text-align:end}
+.amt small{display:block;font-weight:400;font-size:.8rem;color:var(--muted)}
 .ghost{opacity:.4}
-.hint{color:var(--muted);font-size:.85rem;text-align:center}
-.back{font:inherit;background:none;border:0;color:var(--accent-ink);cursor:pointer;padding:0;text-align:right;font-weight:600}
-.info{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;font-size:.95rem}
+.hint{color:var(--muted);font-size:.85rem;text-align:center;margin:0}
+.back{background:none;border:0;color:var(--accent-ink);cursor:pointer;padding:0;text-align:start;font-weight:600;align-self:flex-start;min-height:32px}
+.info{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;font-size:.95rem;margin:0}
 .info dt{color:var(--muted)} .info dd{margin:0}
-.info a{color:var(--accent)}
 .step{border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px}
-.step.ok{border-color:var(--ok)}
-.step-h{display:flex;justify-content:space-between;align-items:center;gap:8px;font-weight:700}
-.tag{font-size:.75rem;font-weight:600;padding:2px 8px;border-radius:99px;background:var(--sunk);color:var(--muted);letter-spacing:.02em}
-.tag.req{color:var(--signal)} .tag.done{background:var(--ok);color:#fff}
-.file{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.file label{font:inherit;font-weight:600;background:var(--sunk);border:1px dashed var(--line);border-radius:8px;padding:8px 12px;cursor:pointer}
-.file input{position:absolute;opacity:0;width:1px;height:1px}
+.step-h{font-weight:700}
+.step p{margin:0}
+.step ul{margin:0;padding-inline-start:18px}
+.big{font-size:1.15rem;font-weight:700}
 .thumbs{display:flex;gap:6px;flex-wrap:wrap}
 .thumbs img{width:56px;height:56px;object-fit:cover;border-radius:6px;border:1px solid var(--line)}
-canvas.sig{width:100%;height:130px;background:var(--sunk);border-radius:8px;touch-action:none;display:block}
-.row{display:flex;gap:8px;flex-wrap:wrap}
-.chip{font:inherit;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:6px 14px;border-radius:99px;cursor:pointer}
+canvas.sig{width:100%;height:160px;background:var(--sunk);border-radius:8px;touch-action:none;display:block}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chip{border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:8px 14px;border-radius:99px;cursor:pointer;min-height:40px}
 .chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
-input[type=text],input[type=number]{font:inherit;width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)}
+.chip.approve{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700}
+input[type=text],input[type=number],input[type=date]{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);font-size:16px}
 .warn{margin:0;color:var(--signal);font-weight:600}.warn:empty{display:none}
 .fld{display:flex;flex-direction:column;gap:4px;font-size:.85rem;color:var(--muted)}
-input[type=date]{font:inherit;width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)}
-.btn{font:inherit;font-weight:700;border:0;border-radius:12px;padding:14px;cursor:pointer;background:var(--accent);color:var(--accent-ink);width:100%}
+.btn{font-weight:700;border:0;border-radius:12px;padding:14px;cursor:pointer;background:var(--accent);color:var(--accent-ink);width:100%;min-height:52px}
 .btn:disabled{opacity:.4;cursor:not-allowed}
-.btn.sec{background:transparent;color:var(--bad);border:1px solid var(--line);font-weight:600;padding:10px}
-.small{font:inherit;font-size:.85rem;background:none;border:0;color:var(--muted);cursor:pointer;text-decoration:underline;padding:0}
+.btn.sec{background:transparent;color:var(--bad);border:1px solid var(--line);font-weight:600}
+.btn.sec2{background:var(--sunk);color:var(--ink);width:auto;padding-inline:20px}
+.btn.quiet{background:var(--sunk);color:var(--ink)}
+.small{font-size:.9rem;background:none;border:0;color:var(--muted);cursor:pointer;text-decoration:underline;padding:6px 0}
 .toast{background:var(--ok);color:#fff;border-radius:10px;padding:10px 12px;font-weight:600}
-.notes{display:flex;flex-direction:column;gap:14px}
-.notes h2{font-family:var(--display);font-weight:400;font-size:1.2rem;margin:0}
-.notes ol,.notes ul{margin:0;padding-inline-start:20px;display:flex;flex-direction:column;gap:6px}
-.notes .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px}
-pre{background:var(--sunk);border-radius:8px;padding:10px;overflow-x:auto;font-size:.8rem;direction:ltr;text-align:left;margin:0;max-height:260px}
-
-/* ---------- office system ---------- */
-.kpis{display:flex;gap:12px;flex-wrap:wrap}
-.kpi{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 16px;min-width:130px;flex:1}
-.kpi b{display:block;font-family:var(--display);font-weight:400;font-size:1.6rem;font-variant-numeric:tabular-nums}
-.kpi span{color:var(--muted);font-size:.9rem}
-.office{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,360px);gap:16px;align-items:start}
-@media (max-width:900px){.office{grid-template-columns:1fr}}
-.tbl{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:12px}
-table{border-collapse:collapse;width:100%;min-width:680px;font-size:.95rem}
-th,td{padding:10px 12px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
-th{color:var(--muted);font-weight:600;font-size:.82rem;letter-spacing:.03em;background:var(--sunk)}
-tbody tr{cursor:pointer} tbody tr:hover{background:var(--sunk)} tbody tr.sel{background:var(--sunk);box-shadow:inset -3px 0 0 var(--accent)}
-td.num{font-variant-numeric:tabular-nums}
-.st{font-size:.8rem;font-weight:700;padding:3px 10px;border-radius:99px;display:inline-block}
-.st.pending{background:var(--sunk);color:var(--muted)} .st.completed{background:var(--ok);color:#fff} .st.failed{background:var(--bad);color:#fff} .st.partial{background:var(--signal);color:#fff}
-.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px;position:sticky;top:env(safe-area-inset-top,0px)}
-.panel h3{margin:0;font-family:var(--display);font-weight:400;font-size:1.2rem}
-.ph{width:100%;aspect-ratio:4/3;max-width:100%;border-radius:8px;background:var(--sunk);display:grid;place-items:center;color:var(--muted);font-size:.85rem;overflow:hidden}
-.ph img{width:100%;height:100%;object-fit:cover}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.empty{color:var(--muted)}
-.stlink{font-weight:700;text-decoration:underline;color:var(--accent)}
-.stlink.completed{color:var(--ok)} .stlink.failed{color:var(--bad)} .stlink.pending{color:var(--muted);font-weight:600}
-.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(70px,1fr));gap:8px}
-.tile{font:inherit;padding:0;border:0;background:none;color:var(--ink);cursor:pointer;display:flex;flex-direction:column;gap:4px;align-items:stretch;text-align:center}
-.tile img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;border:1px solid var(--line);display:block}
-.tile span{font-size:.78rem;color:var(--muted)}
-.tile.empty{justify-content:flex-end;aspect-ratio:auto}
-.tile.empty::before{content:"";display:block;aspect-ratio:1;border-radius:10px;border:1px dashed var(--line)}
-.lightbox{position:fixed;inset:0;background:rgba(0,0,0,.85);display:grid;place-items:center;padding:16px;z-index:50;cursor:zoom-out}
-.lightbox img{max-width:100%;max-height:90vh;border-radius:8px;background:#fff}
-.st.review{background:var(--signal);color:#fff}
 .paysum{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;background:var(--sunk);border-radius:10px;padding:10px 12px;font-size:.92rem}
 .paysum .ok{color:var(--ok);font-weight:700} .paysum .warn{font-weight:700}
 .pline{border:1px solid var(--line);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:8px}
@@ -144,242 +116,346 @@ td.num{font-variant-numeric:tabular-nums}
 .pl-h{display:flex;align-items:center;gap:10px}
 .pl-h b{min-width:3.5em}
 .pl-amt{display:flex;align-items:center;gap:4px;flex:1}
-.pl-amt input{font:inherit;font-weight:700;width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)}
+.pl-amt input{font-weight:700}
 .pl-ph{display:flex;gap:10px;align-items:center}
 .pl-ph img{width:64px;height:44px;object-fit:cover;border-radius:6px;border:1px solid var(--line)}
-.chip.approve{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ltr{direction:ltr;unicode-bidi:isolate}
+
+/* ---------- notes ---------- */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px}
+.card h2{font-family:var(--display);font-weight:400;font-size:1.15rem;margin:0}
+.card ol{margin:0;padding-inline-start:20px;display:flex;flex-direction:column;gap:6px}
+
+/* ---------- office ---------- */
+.office-wrap{display:flex;flex-direction:column;gap:14px;padding:16px}
+.explain{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:0}
+.office{display:grid;grid-template-columns:1fr;gap:14px;align-items:start}
+@media (min-width:900px){.office-wrap{max-width:1100px;margin:0 auto;padding-top:24px}.office{grid-template-columns:minmax(0,1fr) minmax(0,380px)}.panel{position:sticky;top:calc(env(safe-area-inset-top,0px) + 70px)}}
 .cards{display:flex;flex-direction:column;gap:8px;min-width:0}
-.rcard{font:inherit;color:var(--ink);text-align:right;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:6px;cursor:pointer}
-.rcard.sel{border-color:var(--accent);box-shadow:inset -3px 0 0 var(--accent)}
+.rcard{color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:6px;cursor:pointer}
+.rcard.sel{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+[dir=rtl] .rcard.sel{box-shadow:inset -3px 0 0 var(--accent)}
 .rhead{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
-.paycell{margin-top:6px}
-.rf{display:grid;grid-template-columns:96px minmax(0,1fr);gap:8px;align-items:baseline;font-size:.92rem}
+.rhead .num{font-variant-numeric:tabular-nums}
+.sub{color:var(--muted);margin:0}
+.rf{display:grid;grid-template-columns:88px minmax(0,1fr);gap:8px;align-items:baseline;font-size:.92rem}
 .rf .k{color:var(--muted);font-size:.82rem}
-.tl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
-.tl li{padding-inline-start:22px;position:relative;color:var(--muted)}
-.tl li::before{content:"";position:absolute;inset-inline-start:0;top:.45em;width:10px;height:10px;border-radius:50%;border:2px solid var(--line)}
-.tl li.ok{color:var(--ink);font-weight:600}
-.tl li.ok::before{background:var(--ok);border-color:var(--ok)}
-.lnk{direction:ltr;font-size:.8rem;color:var(--accent);word-break:break-all}
+.paycell{margin-top:6px;display:flex;flex-direction:column;gap:2px}
+.stlink{font-weight:700;text-decoration:underline;color:var(--accent)}
+.stlink.completed{color:var(--ok)} .stlink.failed{color:var(--bad)} .stlink.pending{color:var(--muted);font-weight:600}
+.st{font-size:.8rem;font-weight:700;padding:3px 10px;border-radius:99px;display:inline-block}
+.st.pending{background:var(--sunk);color:var(--muted)} .st.completed{background:var(--ok);color:#fff} .st.failed{background:var(--bad);color:#fff} .st.partial{background:var(--signal);color:#fff}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.panel h3{margin:0;font-family:var(--display);font-weight:400;font-size:1.2rem}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(70px,1fr));gap:8px}
+.tile{padding:0;border:0;background:none;color:var(--ink);cursor:pointer;display:flex;flex-direction:column;gap:4px;text-align:center}
+.tile img{width:100%;aspect-ratio:1;max-width:100%;object-fit:cover;border-radius:10px;border:1px solid var(--line);display:block}
+.tile span{font-size:.78rem;color:var(--muted)}
+.tile.empty{justify-content:flex-end}
+.tile.empty::before{content:"";display:block;aspect-ratio:1;border-radius:10px;border:1px dashed var(--line)}
+.lightbox{position:fixed;inset:0;background:rgba(0,0,0,.85);display:grid;place-items:center;padding:16px;z-index:50;cursor:zoom-out}
+.lightbox img{max-width:100%;max-height:90vh;border-radius:8px;background:#fff}
+.lnk{direction:ltr;font-size:.8rem;color:var(--accent);word-break:break-all;opacity:.75}
+.empty{color:var(--muted);margin:0}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
-<div class="wrap" dir="rtl">
-  <header style="display:flex;flex-direction:column;gap:6px">
-    <h1>הדמיית אפליקציית מסירות</h1>
-    <p class="sub">הדמיה לחיצה עם נתוני דוגמה. מה שהנהג משלים בטלפון נקלט מיד במערכת הראשית ומתעדכן בקישור של הנקודה.</p>
-  </header>
-  <div class="tabs" role="tablist">
-    <button role="tab" id="tab-driver" aria-selected="true">מה הנהג רואה</button>
-    <button role="tab" id="tab-office" aria-selected="false">מה חוזר למערכת הראשית</button>
+<div class="bar">
+  <span class="name" id="app-name"></span>
+  <div class="seg" role="tablist">
+    <button role="tab" id="tab-driver" aria-selected="true"></button>
+    <button role="tab" id="tab-office" aria-selected="false"></button>
   </div>
+  <div class="seg" aria-label="Language">
+    <button id="lang-en" aria-pressed="false">EN</button>
+    <button id="lang-he" aria-pressed="false">עב</button>
+  </div>
+</div>
+<div class="demo"><label for="preview"><input type="checkbox" id="preview" checked><span id="demo-txt"></span></label></div>
 
-  <section id="view-driver" class="stage">
-    <div class="phone" id="phone"></div>
-    <aside class="notes">
-      <div class="card">
-        <label style="display:flex;gap:10px;align-items:center;background:var(--sunk);padding:10px 12px;border-radius:10px;cursor:pointer;font-weight:600"><input type="checkbox" id="preview" checked style="width:20px;height:20px;accent-color:var(--accent)">מצב סקירה: אפשר לעבור בין השלבים בלי למלא (בלי תמונה, חתימה או תשלום)</label>
-        <h2>איך זה עובד</h2>
-        <ol>
-          <li>הנהג פותח את הקישור שקיבל ב-SMS. אין צורך בהתקנה.</li>
-          <li>מסך פתיחה: שלושה נהלים לסוף היום: מעטפת שיקים (מספר שיקים), מעטפת מזומן (סה"כ, כל לקוח בגומייה) וחבילות חוזרות (שם ברור ואריזה תקינה). רק אחרי זה מופיעות הנקודות. <button class="small" id="reset-terms">הצג שוב את מסך הפתיחה</button></li>
-          <li>הנקודות מופיעות בסדר שנשלח מהמערכת. גרירה בידית ⋮⋮ משנה את הסדר.</li>
-          <li>לחיצה על נקודה פותחת אשף בשלושה שלבים: מסירה וחתימה (ארגזים, תמונה, חתימה), תשלום, חזרות. שלב אחד בכל מסך, וכפתור "הבא" נפתח רק כשהשלב הושלם.</li>
-          <li>בלחיצה על סיום, הנתונים נשלחים למערכת הראשית לפי ה-ID של המסירה.</li>
-          <li>בראש כל מסך מופיעים תמיד מספר השיקים (בלי סכום) וסך המזומן. "סיכום ביניים" זמין כל הזמן ומציג מה לרשום על מעטפת השיקים ומה להפקיד, וסוגר את היום.</li>
-        </ol>
-      </div>
-      <div class="card">
-        <h2>מה נשלח למערכת הראשית</h2>
-        <p class="sub" id="payload-hint">סיים נקודה כדי לראות את ההודעה שנשלחת.</p>
-        <pre id="payload" hidden></pre>
-      </div>
-    </aside>
-  </section>
+<section id="view-driver" class="stage">
+  <div class="phone" id="phone"></div>
+  <aside class="notes">
+    <div class="card">
+      <h2 id="how-h"></h2>
+      <ol id="how"></ol>
+      <button class="small" id="reset-terms" style="align-self:flex-start"></button>
+    </div>
+  </aside>
+</section>
 
-  <section id="view-office" hidden style="display:flex;flex-direction:column;gap:16px">
-    <div class="kpis" id="kpis"></div>
+<section id="view-office" hidden>
+  <div class="office-wrap">
+    <p class="explain" id="kpis"></p>
     <div class="office">
       <div id="rows" class="cards"></div>
       <div class="panel" id="panel"></div>
     </div>
-  </section>
-</div>
+  </div>
+</section>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
 <script>
 (function(){
-const fmt=n=>"₪"+Number(n).toLocaleString("he-IL",{minimumFractionDigits:0,maximumFractionDigits:2});
-const payLabel={cash:"מזומן",check:"שיק",credit:"אשראי"};
-const payTxt=d=>d.method?payLabel[d.method]+(d.method==="check"&&d.checkDays?" "+d.checkDays+" יום":""):"שולם מראש";
-function ph(label,hue){const s=`<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300'><rect width='400' height='300' fill='hsl(${hue},25%,62%)'/><rect x='120' y='90' width='160' height='120' rx='8' fill='hsl(${hue},25%,48%)'/><text x='200' y='270' font-family='sans-serif' font-size='22' fill='white' text-anchor='middle'>${label}</text></svg>`;return "data:image/svg+xml;charset=utf-8,"+encodeURIComponent(s)}
-function checkImg(){const s=`<svg xmlns='http://www.w3.org/2000/svg' width='480' height='220'><rect width='480' height='220' fill='#dff3f5'/><rect x='14' y='12' width='70' height='30' fill='#1d4f91'/><text x='49' y='33' font-family='sans-serif' font-size='14' fill='#fff' text-anchor='middle'>leumi</text><text x='466' y='30' font-family='sans-serif' font-size='12' fill='#333' text-anchor='end'>ישראל ישראלי 123456782</text><line x1='30' y1='95' x2='450' y2='95' stroke='#1d4f91'/><line x1='30' y1='130' x2='450' y2='130' stroke='#1d4f91'/><text x='60' y='165' font-family='cursive' font-size='20' fill='#222'>06.11.2026</text><text x='20' y='205' font-family='monospace' font-size='18' fill='#111'>⑈1000001⑈ ⑆10⑆647⑆31⑆ 01234567⑈</text></svg>`;return "data:image/svg+xml;charset=utf-8,"+encodeURIComponent(s)}
+/* ---------- language ---------- */
+const S={
+ appName:{en:"Driver app mockup",he:"הדמיית אפליקציית נהגים"},
+ tabDriver:{en:"Driver",he:"נהג"}, tabOffice:{en:"Main system",he:"מערכת ראשית"},
+ demo:{en:"Demo mode: skip required fields",he:"מצב סקירה: מעבר בלי למלא"},
+ howH:{en:"How it works",he:"איך זה עובד"},
+ how:{en:["The driver opens the link they got by SMS. Nothing to install.","Start screen: three end-of-day rules (checks envelope, cash envelope, returned packages). The deliveries appear only after the driver confirms.","Deliveries come in the order the main system sent. The driver can drag ⋮⋮ to reorder.","Tapping a delivery opens a 3-step wizard: delivery + signature, payment, returns. \"Next\" unlocks only when the step is complete.","The top strip always shows the number of checks (no total) and the cash total. \"Interim summary\" is always available."],
+      he:["הנהג פותח את הקישור שקיבל ב-SMS. אין צורך בהתקנה.","מסך פתיחה: שלושה נהלים לסוף היום (מעטפת שיקים, מעטפת מזומן, חבילות חוזרות). הנקודות מופיעות רק אחרי אישור.","הנקודות מופיעות בסדר שנשלח מהמערכת. גרירה בידית ⋮⋮ משנה את הסדר.","לחיצה על נקודה פותחת אשף בשלושה שלבים: מסירה וחתימה, תשלום, חזרות. \"הבא\" נפתח רק כשהשלב הושלם.","בראש המסך תמיד מופיעים מספר השיקים (בלי סכום) וסך המזומן. \"סיכום ביניים\" זמין כל הזמן."]},
+ resetTerms:{en:"Show the start screen again",he:"הצג שוב את מסך הפתיחה"},
+ hello:{en:"Hi {0}",he:"שלום {0}"},
+ listMeta:{en:"{0} · {1} deliveries · {2} done",he:"{0} · {1} נקודות · הושלמו {2}"},
+ waiting:{en:"{0} · {1} deliveries waiting for you",he:"{0} · {1} נקודות מסירה מחכות לך"},
+ boxesN:{en:"{0} boxes",he:"{0} ארגזים"}, box1:{en:"1 box",he:"ארגז אחד"},
+ dragHint:{en:"Drag ⋮⋮ to change the order",he:"גרור בידית ⋮⋮ כדי לשנות סדר"},
+ interim:{en:"Interim summary",he:"סיכום ביניים"}, allDone:{en:"All done: day summary",he:"כל הנקודות הושלמו: לסיכום יום"},
+ beforeStart:{en:"Before you start, confirm:",he:"לפני שמתחילים, סמן:"},
+ rules:{en:[["Checks","Closed white envelope. Write: route + number of checks"],["Cash","Envelope with the total. Each customer in a rubber band"],["Returned packages","Clear customer name, proper packing"]],
+        he:[["שיקים","מעטפה לבנה סגורה. לכתוב: קו + מספר שיקים"],["מזומן","מעטפה עם הסכום. כל לקוח בגומייה"],["חבילות חוזרות","שם לקוח ברור, אריזה תקינה"]]},
+ notAccepted:{en:"Anything not by these rules will not be accepted.",he:"מה שלא לפי הנוהל לא יתקבל."},
+ accept:{en:"I confirm, start working",he:"מאשר, להתחיל לעבוד"},
+ checks:{en:"Checks",he:"שיקים"}, cash:{en:"Cash",he:"מזומן"}, credit:{en:"Credit",he:"אשראי"}, check:{en:"Check",he:"שיק"},
+ delivered:{en:"Delivered",he:"נמסרו"},
+ prepaid:{en:"Prepaid",he:"שולם מראש"}, checkDays:{en:"{0} days",he:"{0} יום"},
+ back:{en:"‹ Back",he:"→ חזרה"},
+ daySummary:{en:"Day summary",he:"סיכום יום"},
+ envChecks:{en:"Checks envelope",he:"מעטפת שיקים"}, writeOn:{en:"Write on the envelope:",he:"לרשום על המעטפה:"},
+ envChecksLine:{en:"Route: {0} · Total checks: {1}",he:"קו: {0} · סה\"כ שיקים: {1}"},
+ envChecksNote:{en:"Standard white envelope, closed. Each check was already photographed at its delivery.",he:"מעטפה לבנה סטנדרטית, סגורה. כל שיק כבר צולם בנקודה שלו."},
+ envCash:{en:"Cash envelope",he:"מעטפת מזומן"}, cashLine:{en:"Total cash: {0}",he:"סה\"כ מזומן: {0}"},
+ cashNote:{en:"Inside, each customer in a separate rubber band:",he:"בתוך המעטפה, כל לקוח בגומייה נפרדת:"},
+ noCash:{en:"No cash today.",he:"אין מזומן היום."},
+ returnsH:{en:"Packages going back to the office",he:"חבילות שחוזרות למשרד"},
+ returnsNote:{en:"Write the customer name on each package, clearly. Proper packing only.",he:"לכתוב על כל חבילה את שם הלקוח, ברור וגדול. אריזה תקינה בלבד."},
+ noReturns:{en:"No packages to return.",he:"אין חבילות לחזרה."},
+ toDeposit:{en:"Cash to deposit",he:"מזומן להפקדה"}, creditN:{en:"{0} transactions",he:"{0} עסקאות"},
+ deliveredOf:{en:"{0} (incl. {1} partial)",he:"{0} (מתוכן {1} חלקיות)"},
+ notDelivered:{en:"Not delivered",he:"לא נמסרו"}, boxesBack:{en:"Boxes back to warehouse",he:"ארגזים שחוזרים למחסן"},
+ stillOpen:{en:"This is the current state. {0} deliveries are still open; the day closes when they're all done.",he:"זה מצב נכון לעכשיו. נשארו {0} נקודות פתוחות, והיום ייסגר כשכולן יסתיימו."},
+ closeDay:{en:"Close the day",he:"סגירת יום"}, dayClosed:{en:"Day closed",he:"היום נסגר"},
+ stepBox:{en:"Delivery + signature",he:"מסירה וחתימה"}, stepPay:{en:"Payment",he:"תשלום"}, stepRma:{en:"Returns",he:"חזרות"},
+ howManyBoxes:{en:"How many boxes were delivered?",he:"כמה ארגזים נמסרו?"},
+ less:{en:"Less",he:"פחות"}, more:{en:"More",he:"יותר"},
+ photoDelivery:{en:"Photograph the delivery",he:"צלם את המסירה"}, sample:{en:"Sample",he:"דוגמה"},
+ custSign:{en:"Customer signature",he:"חתימת הלקוח"}, signer:{en:"Signed by",he:"שם החותם"}, clearSig:{en:"Clear",he:"נקה חתימה"},
+ notReceived:{en:"Customer did not take the delivery",he:"הלקוח לא קיבל את המסירה"},
+ reasons:{en:{absent:"Customer not there",refused:"Customer refused",address:"Wrong address",damaged:"Damaged goods"},he:{absent:"הלקוח לא נמצא",refused:"הלקוח סירב",address:"כתובת שגויה",damaged:"סחורה פגומה"}},
+ payments:{en:"Payments",he:"תשלומים"}, howPaid:{en:"How did the customer pay?",he:"איך הלקוח שילם?"},
+ due:{en:"Due",he:"לגבייה"}, collected:{en:"Collected",he:"נגבה"},
+ addMore:{en:"Add another payment:",he:"הוסף עוד תשלום:"}, perOrder:{en:"per order",he:"לפי ההזמנה"},
+ anyReturns:{en:"Anything coming back?",he:"יש סחורה שחוזרת?"},
+ returnsOpt:{en:"Optional. If there are no returns, tap \"Finish delivery\".",he:"לא חובה. אם אין חזרות, לחץ \"סיום מסירה\"."},
+ photoReturn:{en:"Photograph the return",he:"צלם חזרה"},
+ navigate:{en:"Navigate",he:"ניווט"},
+ demoHint:{en:"Demo mode: \"Next\" works without filling in",he:"מצב סקירה: \"הבא\" פתוח גם בלי למלא"},
+ prev:{en:"Back",he:"הקודם"}, next:{en:"Next",he:"הבא"}, finish:{en:"Finish delivery",he:"סיום מסירה"},
+ box0:{en:"0 boxes is not a delivery. If the customer didn't take it, tap below.",he:"0 ארגזים זו לא מסירה. אם הלקוח לא קיבל, לחץ למטה."},
+ boxShort:{en:"{0} boxes short. The delivery will be marked partial.",he:"חסרים {0} ארגזים. המסירה תסומן כחלקית."},
+ boxExtra:{en:"{0} boxes extra. The delivery will be marked partial.",he:"עודף של {0} ארגזים. המסירה תסומן כחלקית."},
+ paysLess:{en:"Customer pays less? Why:",he:"הלקוח משלם פחות? למה:"}, paysMore:{en:"Customer pays more? Why:",he:"הלקוח משלם יותר? למה:"},
+ diffs:{en:{later:"Will pay the rest later",discount:"Approved discount",dispute:"Disputes the goods",debt:"Previous balance",order:"Order mistake"},he:{later:"ישלים בהמשך",discount:"הנחה מאושרת",dispute:"מחלוקת על הסחורה",debt:"יתרת חוב קודמת",order:"טעות בהזמנה"}},
+ full:{en:"Paid in full",he:"הסכום מלא"}, short:{en:"{0} missing",he:"חסר {0}"}, over:{en:"{0} extra",he:"עודף {0}"},
+ thirdParty:{en:"Third-party check (account holder ID differs from the customer).",he:"שיק של צד ג' (ת.ז בעל החשבון שונה מהלקוח)."},
+ dueFar:{en:"Due date is {0} days past the payment terms ({1} days).",he:"פירעון רחוק ב-{0} ימים מתנאי התשלום (שיק {1})."},
+ dupHere:{en:"Check {0} was already scanned at this delivery.",he:"שיק {0} כבר נסרק בנקודה הזו."},
+ dupOther:{en:"Check {0} was already scanned today at {1}.",he:"שיק {0} כבר נסרק היום אצל {1}."},
+ remove:{en:"Remove",he:"הסר"}, fix:{en:"Fix",he:"תיקון"}, photographed:{en:"Photographed",he:"צולם"}, photoOf:{en:"Photograph {0}",he:"צלם {0}"},
+ fCheckNum:{en:"Check no.",he:"מס' שיק"}, fBank:{en:"Bank",he:"בנק"}, fBranch:{en:"Branch",he:"סניף"}, fAccount:{en:"Account",he:"חשבון"}, fDrawer:{en:"Account holder",he:"בעל החשבון"}, fDrawerId:{en:"ID / company no.",he:"ת.ז / ח.פ"},
+ dueDate:{en:"Due date",he:"תאריך פירעון"},
+ sent:{en:"Delivery sent to the main system",he:"המסירה נשלחה למערכת הראשית"},
+ undo:{en:"My mistake, reopen (up to 10 minutes after closing)",he:"טעיתי, לפתוח מחדש (עד 10 דקות מהסגירה)"},
+ stPending:{en:"On the way",he:"בדרך"}, stDone:{en:"Delivered",he:"נמסר"}, stFailed:{en:"Not delivered",he:"לא נמסר"}, stPartial:{en:"Partly delivered",he:"נמסר חלקית"},
+ officeExplain:{en:"One new column in the main system: \"Delivery\". It updates by itself: the delivery link, delivered / not delivered, and the payment collected. The payment goes into the existing payment rows only when someone clicks \"Approve\".",
+                he:"עמודה חדשה אחת במערכת הראשית: \"מסירה\". היא מתעדכנת לבד: קישור לנקודה, נמסר / לא נמסר, והתשלום שנגבה. התשלום נכתב לשורות התשלום הקיימות רק בלחיצה על \"אשר והזן\"."},
+ colDelivery:{en:"Delivery",he:"מסירה"},
+ approve:{en:"Approve",he:"אשר והזן"}, toReview:{en:"To review",he:"לבדיקה"}, entered:{en:"Entered in payment rows",he:"הוזן לשורות התשלום"},
+ pickRow:{en:"Pick a delivery",he:"בחר מסירה"},
+ doneAt:{en:"Delivered at {0}",he:"נמסר ב-{0}"}, notYet:{en:"Waiting to leave",he:"ממתין ליציאה"},
+ next1:{en:"Next stop",he:"הנקודה הבאה"}, before1:{en:"1 delivery before",he:"מסירה אחת לפני"}, beforeN:{en:"{0} deliveries before",he:"{0} מסירות לפני"},
+ tDelivery:{en:"Delivery",he:"מסירה"}, tSignature:{en:"Signature",he:"חתימה"}, tReturns:{en:"Returns ({0})",he:"חזרות ({0})"}, noReturnsTile:{en:"No returns",he:"אין חזרות"},
+ signedBy:{en:"Signed by",he:"חתם"}, payment:{en:"Payment",he:"תשלום"}, ofTotal:{en:"of {0}",he:"מתוך {0}"},
+ thirdTag:{en:"3rd party",he:"צד ג'"},
+ otherDriver:{en:"Example: another driver's delivery, no photos in this mockup.",he:"דוגמה: מסירה של נהג אחר, ללא תמונות בהדמיה."},
+ willAppear:{en:"Photo, signature and payment appear here when the driver finishes.",he:"תמונה, חתימה ותשלום יופיעו כאן כשהנהג יסיים."},
+ phDelivery:{en:"Delivery photo",he:"תמונת מסירה"}, phReturn:{en:"Return",he:"חזרה"}, phCash:{en:"Cash photo",he:"צילום מזומן"}, phBroken:{en:"Faulty unit",he:"מזגן תקול"},
+};
+let lang="he";
+try{const s=localStorage.getItem("lang");if(s==="en"||s==="he")lang=s;else lang=(navigator.language||"").startsWith("he")?"he":"en"}catch(e){lang=(navigator.language||"").startsWith("he")?"he":"en"}
+const t=(k,...a)=>{let s=S[k][lang];return typeof s==="string"?s.replace(/\{(\d)\}/g,(_,i)=>a[i]):s};
+const L=v=>v&&typeof v==="object"?v[lang]:v;
+
+const fmt=n=>"₪"+Number(n).toLocaleString("en-US",{minimumFractionDigits:0,maximumFractionDigits:2});
+const payLabel=m=>t(m);
+const payTxt=d=>d.method?payLabel(d.method)+(d.method==="check"&&d.checkDays?" "+t("checkDays",d.checkDays):""):t("prepaid");
+const boxes=n=>n===1?t("box1"):t("boxesN",n);
+function ph(key,hue){const s=`<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300'><rect width='400' height='300' fill='hsl(${hue},25%,62%)'/><rect x='120' y='90' width='160' height='120' rx='8' fill='hsl(${hue},25%,48%)'/><text x='200' y='270' font-family='sans-serif' font-size='22' fill='white' text-anchor='middle'>${S[key].en}</text></svg>`;return "data:image/svg+xml;charset=utf-8,"+encodeURIComponent(s)}
+function checkImg(){const s=`<svg xmlns='http://www.w3.org/2000/svg' width='480' height='220'><rect width='480' height='220' fill='#dff3f5'/><rect x='14' y='12' width='70' height='30' fill='#1d4f91'/><text x='49' y='33' font-family='sans-serif' font-size='14' fill='#fff' text-anchor='middle'>BANK</text><text x='466' y='30' font-family='sans-serif' font-size='12' fill='#333' text-anchor='end'>Israel Israeli 123456782</text><line x1='30' y1='95' x2='450' y2='95' stroke='#1d4f91'/><line x1='30' y1='130' x2='450' y2='130' stroke='#1d4f91'/><text x='60' y='165' font-family='cursive' font-size='20' fill='#222'>06.11.2026</text><text x='20' y='205' font-family='monospace' font-size='18' fill='#111'>1000001  10  647  01234567</text></svg>`;return "data:image/svg+xml;charset=utf-8,"+encodeURIComponent(s)}
 function sigImg(){const s="<svg xmlns='http://www.w3.org/2000/svg' width='400' height='130'><path d='M30 90 C60 20 90 120 120 60 S170 30 190 80 S250 110 280 50 S340 70 370 60' fill='none' stroke='#1b2a4a' stroke-width='3'/></svg>";return "data:image/svg+xml;charset=utf-8,"+encodeURIComponent(s)}
 
-const route={route_id:"R-2026-09-30-017",driver:"משה כהן",driver_id:"D-104",date:"30.09.2026"};
+/* ---------- sample data (examples, not real customers) ---------- */
+const driver={name:{en:"Moshe Cohen",he:"משה כהן"},date:"30.09.2026"};
 const D=[
- {id:"DLV-558812",cust:"חשמל השרון בע\"מ",taxId:"515195360",checkDays:45,contact:"דני לוי",phone:"052-1112233",addr:"הרצל 12",city:"רעננה",amount:4250,boxes:2,method:"check",items:"2 × מזגן 1.5 כ\"ס",note:"כניסה אחורית, קומה 2",status:"completed",time:"08:42",seq:1,boxesDelivered:2,lines:[{type:"check",amount:4250,checkNum:"1000001",bank:"10",branch:"647",account:"01234567",drawerName:"ישראל ישראלי",drawerId:"123456782",dueDate:"2026-11-14",ocr:true,photo:null}],pay:"check",rma:1,
-  res:{photos:[ph("תמונת מסירה",160)],sig:sigImg(),signer:"דני לוי",rmaPhotos:[ph("מזגן תקול",0)]}},
- {id:"DLV-558813",cust:"קירור פלוס",taxId:"032503708",contact:"רונית",phone:"054-3344556",addr:"ויצמן 45",city:"כפר סבא",amount:1890,boxes:1,method:"cash",items:"1 × מדחס",note:"",status:"pending"},
- {id:"DLV-558817",cust:"א.ב. מיזוג",taxId:"514220981",contact:"אבי",phone:"050-9988776",addr:"התעשייה 8",city:"הוד השרון",amount:0,boxes:3,method:null,items:"3 × צנרת נחושת",note:"שולם מראש",status:"pending"},
- {id:"DLV-558820",cust:"מלון גלי ים",taxId:"520031847",contact:"מחלקת אחזקה",phone:"09-7654321",addr:"הים 3",city:"הרצליה",amount:12600,boxes:4,method:"credit",items:"4 × יחידה פנימית",note:"להתקשר 15 דק' לפני",status:"pending"},
- {id:"DLV-558824",cust:"שמעוני מערכות",taxId:"058812390",contact:"יעל",phone:"052-7788990",addr:"ז'בוטינסקי 101",city:"פתח תקווה",amount:760,boxes:1,method:"cash",items:"1 × שלט + חיישן",note:"",status:"pending"},
+ {id:"DLV-558812",cust:{en:"Sharon Electric Ltd.",he:"חשמל השרון בע\"מ"},taxId:"515195360",checkDays:45,contact:{en:"Danny Levi",he:"דני לוי"},phone:"052-1112233",addr:{en:"12 Herzl St., Ra'anana",he:"הרצל 12, רעננה"},amount:4250,boxes:2,method:"check",status:"completed",time:"08:42",seq:1,boxesDelivered:2,
+  lines:[{type:"check",amount:4250,checkNum:"1000001",bank:"10",branch:"647",account:"01234567",drawerName:"Israel Israeli",drawerId:"123456782",dueDate:"2026-11-14",photo:null}],
+  res:{photos:[ph("phDelivery",160)],sig:sigImg(),signer:"Danny Levi",rmaPhotos:[ph("phBroken",0)]}},
+ {id:"DLV-558813",cust:{en:"Kirur Plus",he:"קירור פלוס"},taxId:"032503708",contact:{en:"Ronit",he:"רונית"},phone:"054-3344556",addr:{en:"45 Weizmann St., Kfar Saba",he:"ויצמן 45, כפר סבא"},amount:1890,boxes:1,method:"cash",status:"pending"},
+ {id:"DLV-558817",cust:{en:"A.B. Cooling",he:"א.ב. מיזוג"},taxId:"514220981",contact:{en:"Avi",he:"אבי"},phone:"050-9988776",addr:{en:"8 HaTa'asiya St., Hod HaSharon",he:"התעשייה 8, הוד השרון"},amount:0,boxes:3,method:null,status:"pending"},
+ {id:"DLV-558820",cust:{en:"Galei Yam Hotel",he:"מלון גלי ים"},taxId:"520031847",contact:{en:"Maintenance",he:"מחלקת אחזקה"},phone:"09-7654321",addr:{en:"3 HaYam St., Herzliya",he:"הים 3, הרצליה"},amount:12600,boxes:4,method:"credit",status:"pending"},
+ {id:"DLV-558824",cust:{en:"Shimoni Systems",he:"שמעוני מערכות"},taxId:"058812390",contact:{en:"Yael",he:"יעל"},phone:"052-7788990",addr:{en:"101 Jabotinsky St., Petah Tikva",he:"ז'בוטינסקי 101, פתח תקווה"},amount:760,boxes:1,method:"cash",status:"pending"},
 ];
+const otherDriver={en:"Eli Mizrahi",he:"אלי מזרחי"};
 const others=[
- {id:"DLV-558790",cust:"טכנו קול",city:"חולון",driver:"אלי מזרחי",amount:2300,boxes:2,status:"completed",lines:[{type:"credit",amount:2300}],rma:0,time:"08:15",reviewed:true},
- {id:"DLV-558795",cust:"בית ספר אורט",city:"בת ים",driver:"אלי מזרחי",amount:0,boxes:5,status:"failed",rma:0,time:"09:05",reason:"הלקוח לא נמצא"},
- {id:"DLV-558801",cust:"מיזוג הדרום",city:"ראשון לציון",driver:"אלי מזרחי",amount:5400,boxes:6,status:"pending",rma:0,time:""},
+ {id:"DLV-558790",cust:{en:"Techno Cool",he:"טכנו קול"},driver:otherDriver,amount:2300,boxes:2,status:"completed",lines:[{type:"credit",amount:2300}],time:"08:15",reviewed:true},
+ {id:"DLV-558795",cust:{en:"ORT School",he:"בית ספר אורט"},driver:otherDriver,amount:0,boxes:5,status:"failed",time:"09:05",reason:"absent"},
+ {id:"DLV-558801",cust:{en:"Southern Cooling",he:"מיזוג הדרום"},driver:otherDriver,amount:5400,boxes:6,status:"pending",time:""},
 ];
 D[0].lines[0].photo=checkImg();
 window.__D=D;
 let order=D.map(d=>d.id), open=null, sel="DLV-558812";
-let preview=true, dayClosed=null, doneCount=1, draft=null, accepted=null, checks=[false,false,false];
+let preview=true, dayClosed=null, doneCount=1, draft=null, accepted=null, checksOk=[false,false,false];
 const byId=id=>D.find(d=>d.id===id);
 const phone=document.getElementById("phone");
 
+/* ---------- driver: list ---------- */
 function renderList(){
   if(!accepted){renderTerms();return}
   const done=D.filter(d=>d.status!=="pending").length;
-  phone.innerHTML=`<div class="ph-head"><div class="t">שלום ${route.driver}</div><div class="m">${route.date} · ${D.length} נקודות · הושלמו ${done}</div><div class="prog"><i style="width:${done/D.length*100}%"></i></div></div>${tallyBar()}
-  <div class="ph-body"><div id="list" style="display:flex;flex-direction:column;gap:10px"></div><p class="hint">גרור בידית ⋮⋮ כדי לשנות סדר</p><button class="btn" id="eod" style="${done===D.length?"":"background:var(--sunk);color:var(--ink)"}">${done===D.length?"כל הנקודות הושלמו: לסיכום יום":"סיכום ביניים"}</button></div>`;
+  phone.innerHTML=`<div class="ph-head"><div class="t">${t("hello",L(driver.name))}</div><div class="m">${t("listMeta",driver.date,D.length,done)}</div><div class="prog"><i style="width:${done/D.length*100}%"></i></div></div>${tallyBar()}
+  <div class="ph-body"><div id="list" style="display:flex;flex-direction:column;gap:10px"></div><p class="hint">${t("dragHint")}</p><button class="btn ${done===D.length?"":"quiet"}" id="eod">${done===D.length?t("allDone"):t("interim")}</button></div>`;
   phone.querySelector("#eod").onclick=renderSummary;
   const list=phone.querySelector("#list");
   order.forEach((id,i)=>{const d=byId(id);const el=document.createElement("div");
     el.className="stop"+(d.status==="completed"?" done":d.status==="failed"?" fail":"");el.dataset.id=id;el.tabIndex=0;el.setAttribute("role","button");
-    el.innerHTML=`<span class="h" aria-label="גרירה">⋮⋮</span><span class="n">${d.status==="completed"?"✓":d.status==="failed"?"✕":i+1}</span><span class="c"><b>${d.cust}</b><span>${d.addr}, ${d.city} · ${d.boxes} ארגזים</span></span><span class="amt">${d.amount?fmt(d.amount):"—"}<br><span style="font-weight:400;font-size:.8rem;color:var(--muted)">${d.amount?payTxt(d):""}</span></span>`;
+    el.innerHTML=`<span class="h" aria-label="drag">⋮⋮</span><span class="n">${d.status==="completed"?"✓":d.status==="failed"?"✕":i+1}</span><span class="c"><b>${L(d.cust)}</b><span>${L(d.addr)} · ${boxes(d.boxes)}</span></span><span class="amt">${d.amount?fmt(d.amount):"—"}<small>${d.amount?payTxt(d):""}</small></span>`;
     el.addEventListener("click",e=>{if(e.target.classList.contains("h"))return;openStop(id)});
     el.addEventListener("keydown",e=>{if(e.key==="Enter")openStop(id)});
     list.appendChild(el)});
   if(window.Sortable) Sortable.create(list,{handle:".h",filter:".done,.fail",animation:150,ghostClass:"ghost",onEnd:()=>{order=[...list.children].map(c=>c.dataset.id);renderList();renderOffice()}});
 }
-
-const RULES=[
- {t:"שיקים",b:"מעטפה לבנה סגורה. לכתוב: קו + מספר שיקים"},
- {t:"מזומן",b:"מעטפה עם הסכום. כל לקוח בגומייה"},
- {t:"חבילות חוזרות",b:"שם לקוח ברור, אריזה תקינה"}];
 function renderTerms(){
-  const all=checks.every(Boolean);
-  phone.innerHTML=`<div class="ph-head"><div class="t">שלום ${route.driver}</div><div class="m">${route.date} · ${D.length} נקודות מסירה מחכות לך</div></div>
-  <div class="ph-body"><p style="margin:0;font-weight:700">לפני שמתחילים, סמן:</p>
-  ${RULES.map((r,i)=>`<label class="rule ${checks[i]?"ok":""}" for="rule-${i}"><input type="checkbox" id="rule-${i}" data-i="${i}" ${checks[i]?"checked":""}><span><b>${r.t}:</b> ${r.b}</span></label>`).join("")}
-  <p class="hint" style="color:var(--bad);text-align:right;margin:0">מה שלא לפי הנוהל לא יתקבל.</p>
-  <button class="btn" id="accept" ${all||preview?"":"disabled"}>מאשר, להתחיל לעבוד</button>
-  </div>`;
-  phone.querySelectorAll("input[data-i]").forEach(c=>c.onchange=()=>{checks[+c.dataset.i]=c.checked;keepScroll(renderTerms)});
+  const all=checksOk.every(Boolean);
+  phone.innerHTML=`<div class="ph-head"><div class="t">${t("hello",L(driver.name))}</div><div class="m">${t("waiting",driver.date,D.length)}</div></div>
+  <div class="ph-body"><p style="margin:0;font-weight:700">${t("beforeStart")}</p>
+  ${t("rules").map((r,i)=>`<label class="rule ${checksOk[i]?"ok":""}" for="rule-${i}"><input type="checkbox" id="rule-${i}" data-i="${i}" ${checksOk[i]?"checked":""}><span><b>${r[0]}:</b> ${r[1]}</span></label>`).join("")}
+  <p class="hint" style="color:var(--bad);text-align:start">${t("notAccepted")}</p>
+  <button class="btn" id="accept" ${all||preview?"":"disabled"}>${t("accept")}</button></div>`;
+  phone.querySelectorAll("input[data-i]").forEach(c=>c.onchange=()=>{checksOk[+c.dataset.i]=c.checked;keepScroll(renderTerms)});
   phone.querySelector("#accept").onclick=()=>{accepted=now();renderList();renderOffice()};
 }
-const lineLabel=l=>l.type==="check"?"שיק"+(l.checkNum?" "+l.checkNum:""):payLabel[l.type];
 function linesOf(r){return r.lines||[]}
 function paidSum(ls){return ls.reduce((a,l)=>a+(+l.amount||0),0)}
-function tally(){const c=D.filter(d=>d.status==="completed");const L=c.flatMap(d=>linesOf(d).map(l=>({...l,cust:d.cust})));
-  const cash=L.filter(l=>l.type==="cash").reduce((a,l)=>a+(+l.amount||0),0);
-  const checks=L.filter(l=>l.type==="check").length, credit=L.filter(l=>l.type==="credit").length;
+function tally(){const c=D.filter(d=>d.status==="completed");const Ls=c.flatMap(d=>linesOf(d).map(l=>({...l,cust:d.cust})));
+  const cash=Ls.filter(l=>l.type==="cash").reduce((a,l)=>a+(+l.amount||0),0);
+  const checks=Ls.filter(l=>l.type==="check").length, credit=Ls.filter(l=>l.type==="credit").length;
   const failed=D.filter(d=>d.status==="failed");
   const boxesBack=failed.reduce((a,d)=>a+d.boxes,0)+c.reduce((a,d)=>a+Math.max(0,d.boxes-(d.boxesDelivered??d.boxes)),0);
   const cashList=c.map(d=>({cust:d.cust,amt:linesOf(d).filter(l=>l.type==="cash").reduce((a,l)=>a+(+l.amount||0),0)})).filter(x=>x.amt>0);
   const returns=[...failed.map(d=>({cust:d.cust,n:d.boxes})),...c.filter(d=>d.boxesDelivered!=null&&d.boxesDelivered<d.boxes).map(d=>({cust:d.cust,n:d.boxes-d.boxesDelivered}))];
-  const checkList=L.filter(l=>l.type==="check").map(l=>({cust:l.cust,num:l.checkNum||""}));
+  const checkList=Ls.filter(l=>l.type==="check").map(l=>({cust:l.cust,num:l.checkNum||""}));
   return {checkList,cashList,returns,cash,checks,credit,delivered:c.length,partial:c.filter(d=>d.boxesDelivered!=null&&d.boxesDelivered!==d.boxes).length,failed:failed.length,open:D.filter(d=>d.status==="pending").length,boxesBack}}
-function tallyBar(){const t=tally();return `<div class="tally"><div><b>${t.checks}</b><span>שיקים</span></div><div><b>${fmt(t.cash)}</b><span>מזומן</span></div><div><b>${t.delivered}/${D.length}</b><span>נמסרו</span></div></div>`}
-function renderSummary(){const t=tally();const all=t.open===0;
-  phone.innerHTML=`<div class="ph-head"><button class="back" id="back">→ חזרה לרשימה</button><div class="t">${all?"סיכום יום":"סיכום ביניים"}</div><div class="m">${route.driver} · ${route.date}</div></div>${tallyBar()}
+function tallyBar(){const x=tally();return `<div class="tally"><div><b>${x.checks}</b><span>${t("checks")}</span></div><div><b>${fmt(x.cash)}</b><span>${t("cash")}</span></div><div><b>${x.delivered}/${D.length}</b><span>${t("delivered")}</span></div></div>`}
+function renderSummary(){const x=tally();const all=x.open===0;
+  phone.innerHTML=`<div class="ph-head"><button class="back" id="back">${t("back")}</button><div class="t">${all?t("daySummary"):t("interim")}</div><div class="m">${L(driver.name)} · ${driver.date}</div></div>${tallyBar()}
   <div class="ph-body">
-    <div class="step"><div class="step-h">מעטפת שיקים</div><p style="margin:0">לרשום על המעטפה:</p><p style="margin:0;font-size:1.15rem;font-weight:700">קו: ${route.driver} · סה"כ שיקים: ${t.checks}</p><p class="sub" style="margin:0">מעטפה לבנה סטנדרטית, סגורה. כל שיק כבר צולם בנקודה שלו.</p>${t.checkList.length?`<ul style="margin:0;padding-inline-start:18px">${t.checkList.map(c=>`<li>${c.cust}: שיק ${c.num}</li>`).join("")}</ul>`:""}</div>
-    <div class="step"><div class="step-h">מעטפת מזומן</div><p style="margin:0">לרשום על המעטפה:</p><p style="margin:0;font-size:1.15rem;font-weight:700">סה"כ מזומן: ${fmt(t.cash)}</p><p class="sub" style="margin:0">בתוך המעטפה, כל לקוח בגומייה נפרדת:</p>
-      ${t.cashList.length?`<ul style="margin:0;padding-inline-start:18px">${t.cashList.map(c=>`<li>${c.cust}: ${fmt(c.amt)}</li>`).join("")}</ul>`:'<p class="sub" style="margin:0">אין מזומן היום.</p>'}</div>
-    <div class="step"><div class="step-h">חבילות שחוזרות למשרד</div>${t.returns.length?`<ul style="margin:0;padding-inline-start:18px">${t.returns.map(r=>`<li>${r.cust}: ${r.n===1?"ארגז אחד":r.n+" ארגזים"}</li>`).join("")}</ul><p class="sub" style="margin:0">לכתוב על כל חבילה את שם הלקוח, ברור וגדול. אריזה תקינה בלבד.</p>`:'<p class="sub" style="margin:0">אין חבילות לחזרה.</p>'}</div>
-    <dl class="info"><dt>מזומן להפקדה</dt><dd class="amt">${fmt(t.cash)}</dd><dt>שיקים</dt><dd>${t.checks}</dd><dt>אשראי</dt><dd>${t.credit} עסקאות</dd>
-      <dt>נמסרו</dt><dd>${t.delivered}${t.partial?` (מתוכן ${t.partial} חלקיות)`:""}</dd><dt>לא נמסרו</dt><dd>${t.failed}</dd><dt>ארגזים שחוזרים למחסן</dt><dd>${t.boxesBack}</dd></dl>
-    ${all?"":`<p class="sub" style="margin:0">זה מצב נכון לעכשיו. נשארו ${t.open} נקודות פתוחות, והיום ייסגר כשכולן יסתיימו.</p>`}
-    <button class="btn" id="close-day" ${all&&!dayClosed?"":"disabled"}>${dayClosed?"היום נסגר ונשלח":"סגירת יום ושליחה למשרד"}</button></div>`;
+    <div class="step"><div class="step-h">${t("envChecks")}</div><p>${t("writeOn")}</p><p class="big">${t("envChecksLine",L(driver.name),x.checks)}</p><p class="sub">${t("envChecksNote")}</p>${x.checkList.length?`<ul>${x.checkList.map(c=>`<li>${L(c.cust)}: ${t("check")} ${c.num}</li>`).join("")}</ul>`:""}</div>
+    <div class="step"><div class="step-h">${t("envCash")}</div><p>${t("writeOn")}</p><p class="big">${t("cashLine",fmt(x.cash))}</p><p class="sub">${t("cashNote")}</p>
+      ${x.cashList.length?`<ul>${x.cashList.map(c=>`<li>${L(c.cust)}: ${fmt(c.amt)}</li>`).join("")}</ul>`:`<p class="sub">${t("noCash")}</p>`}</div>
+    <div class="step"><div class="step-h">${t("returnsH")}</div>${x.returns.length?`<ul>${x.returns.map(r=>`<li>${L(r.cust)}: ${boxes(r.n)}</li>`).join("")}</ul><p class="sub">${t("returnsNote")}</p>`:`<p class="sub">${t("noReturns")}</p>`}</div>
+    <dl class="info"><dt>${t("toDeposit")}</dt><dd class="amt" style="text-align:start">${fmt(x.cash)}</dd><dt>${t("checks")}</dt><dd>${x.checks}</dd><dt>${t("credit")}</dt><dd>${t("creditN",x.credit)}</dd>
+      <dt>${t("delivered")}</dt><dd>${x.partial?t("deliveredOf",x.delivered,x.partial):x.delivered}</dd><dt>${t("notDelivered")}</dt><dd>${x.failed}</dd><dt>${t("boxesBack")}</dt><dd>${x.boxesBack}</dd></dl>
+    ${all?"":`<p class="sub">${t("stillOpen",x.open)}</p>`}
+    <button class="btn" id="close-day" ${all&&!dayClosed?"":"disabled"}>${dayClosed?t("dayClosed"):t("closeDay")}</button></div>`;
   phone.querySelector("#back").onclick=()=>{renderList()};
-  phone.querySelector("#close-day").onclick=()=>{dayClosed=now();const o={event:"route.finished",route_id:route.route_id,driver_id:route.driver_id,finished_at:"2026-09-30T"+dayClosed+":00+03:00",totals:{checks_count:t.checks,cash_total:t.cash,credit_count:t.credit,delivered:t.delivered,partial:t.partial,failed:t.failed,boxes_returned:t.boxesBack},actual_order:D.filter(d=>d.seq).sort((a,b)=>a.seq-b.seq).map(d=>d.id)};
-    const pre=document.getElementById("payload");pre.textContent=JSON.stringify(o,null,2);pre.hidden=false;document.getElementById("payload-hint").textContent="סיכום היום שנשלח:";renderSummary();renderOffice()};
+  phone.querySelector("#close-day").onclick=()=>{dayClosed=now();renderSummary();renderOffice()};
 }
+
+/* ---------- driver: wizard ---------- */
 const drafts={};
 function openStop(id){open=id;const d=byId(id);
   if(d.status==="pending"&&drafts[id]){draft=drafts[id];renderStop();return}
-  draft=drafts[id]={step:0,boxes:d.boxes,failOpen:false,amtOpen:false,ocrOpen:false,photos:[],sig:false,signer:d.contact||"",lines:[],rmaPhotos:[]};
+  draft=drafts[id]={step:0,boxes:d.boxes,failOpen:false,photos:[],sig:false,signer:L(d.contact)||"",lines:[],rmaPhotos:[]};
   if(d.status!=="pending"){renderDone(d);return}
   renderStop();
 }
 function wizSteps(d){return ["box",...(d.amount?["pay"]:[]),"rma"]}
-function stepOk(d,k){if(preview)return true;if(k==="box")return draft.boxes>0&&draft.photos.length>0&&draft.sig&&draft.signer.trim().length>0;if(k==="sig")return draft.sig&&draft.signer.trim().length>0;if(k==="pay")return payValid(d);return true}
-function photoBtn(id,label,key,multi){return `<div class="bigfile"><label for="${id}" class="bigbtn">${label}</label><input id="${id}" type="file" accept="image/*" capture="environment" ${multi?"multiple":""}><button class="small" data-demo="${key}">דוגמה</button></div><div class="thumbs">${draft[key].map(s=>`<img src="${s}" alt="">`).join("")}</div>`}
+function stepOk(d,k){if(preview)return true;if(k==="box")return draft.boxes>0&&draft.photos.length>0&&draft.sig&&draft.signer.trim().length>0;if(k==="pay")return payValid(d);return true}
+function photoBtn(id,label,key){return `<div class="bigfile"><label for="${id}" class="bigbtn">${label}</label><input id="${id}" type="file" accept="image/*" capture="environment" multiple><button class="small" data-demo="${key}">${t("sample")}</button></div><div class="thumbs">${draft[key].map(s=>`<img src="${s}" alt="">`).join("")}</div>`}
 function renderStop(){const d=byId(open);const steps=wizSteps(d);const k=steps[draft.step];const last=draft.step===steps.length-1;
-  const titles={box:"מסירה וחתימה",sig:"חתימת לקוח",pay:"תשלום",rma:"חזרות"};
+  const titles={box:t("stepBox"),pay:t("stepPay"),rma:t("stepRma")};
   let body="";
-  if(k==="box")body=`<div class="q">כמה ארגזים נמסרו?</div>
-    <div class="counter"><button class="cbtn" id="bx-minus" aria-label="פחות">−</button><b id="bx-val">${draft.boxes}</b><button class="cbtn" id="bx-plus" aria-label="יותר">+</button></div>
-    <p class="warn" id="w-box">${boxWarn(d)}</p>${photoBtn("f-photo","צלם את המסירה","photos",true)}
-    <div class="q" style="font-size:1.1rem">חתימת הלקוח</div><canvas class="sig" id="sig" style="height:160px"></canvas>
-    <div class="row" style="justify-content:space-between;align-items:end"><label class="fld" style="flex:1">שם החותם<input type="text" id="signer" value="${draft.signer}"></label><button class="small" id="clr">נקה חתימה</button></div>
-    <button class="small" id="fail" style="align-self:center">הלקוח לא קיבל את המסירה</button>
-    ${draft.failOpen?`<div class="row" style="justify-content:center">${["הלקוח לא נמצא","הלקוח סירב","כתובת שגויה","סחורה פגומה"].map(r=>`<button class="chip" data-reason="${r}">${r}</button>`).join("")}</div>`:""}`;
-  if(k==="sig")body=`<div class="q">הלקוח חותם כאן</div><canvas class="sig" id="sig" style="height:180px"></canvas>
-    <button class="small" id="clr" style="align-self:flex-start">נקה</button><label class="fld">שם החותם<input type="text" id="signer" value="${draft.signer}"></label>`;
+  if(k==="box")body=`<div class="q">${t("howManyBoxes")}</div>
+    <div class="counter"><button class="cbtn" id="bx-minus" aria-label="${t("less")}">−</button><b id="bx-val">${draft.boxes}</b><button class="cbtn" id="bx-plus" aria-label="${t("more")}">+</button></div>
+    <p class="warn" id="w-box">${boxWarn(d)}</p>${photoBtn("f-photo",t("photoDelivery"),"photos")}
+    <div class="q" style="font-size:1.1rem">${t("custSign")}</div><canvas class="sig" id="sig"></canvas>
+    <div class="row" style="justify-content:space-between;align-items:end"><label class="fld" style="flex:1" for="signer">${t("signer")}<input type="text" id="signer" value="${draft.signer}"></label><button class="small" id="clr">${t("clearSig")}</button></div>
+    <button class="small" id="fail" style="align-self:center">${t("notReceived")}</button>
+    ${draft.failOpen?`<div class="row" style="justify-content:center">${Object.entries(t("reasons")).map(([key,lab])=>`<button class="chip" data-reason="${key}">${lab}</button>`).join("")}</div>`:""}`;
   if(k==="pay"){const paid=paidSum(draft.lines),rem=d.amount-paid;
-    body=`<div class="q">${draft.lines.length?"תשלומים":"איך הלקוח שילם?"}</div>
-    <div class="paysum"><span>לגבייה <b>${fmt(d.amount)}</b></span><span>נגבה <b id="paid-sum">${fmt(paid)}</b></span><span id="rem" class="${rem===0?"ok":"warn"}">${remText(d)}</span></div>
+    body=`<div class="q">${draft.lines.length?t("payments"):t("howPaid")}</div>
+    <div class="paysum"><span>${t("due")} <b>${fmt(d.amount)}</b></span><span>${t("collected")} <b id="paid-sum">${fmt(paid)}</b></span><span id="rem" class="${rem===0?"ok":"warn"}">${remText(d)}</span></div>
     ${draft.lines.map((l,i)=>lineCard(d,l,i)).join("")}
     <div id="diffbox">${diffBox(d)}</div>
-    ${draft.lines.length?'<div class="sub" style="text-align:center">הוסף עוד תשלום:</div>':""}
-    <div class="paygrid">${["check","cash","credit"].map(m=>`<button class="paybtn" data-add="${m}">${draft.lines.length?"+ ":""}${payLabel[m]}${!draft.lines.length&&m===d.method?'<small>לפי ההזמנה</small>':""}</button>`).join("")}</div>`}
-  if(k==="rma")body=`<div class="q">יש סחורה שחוזרת?</div><p class="sub" style="margin:0">לא חובה. אם אין חזרות, לחץ "סיום מסירה".</p>${photoBtn("f-rma","צלם חזרה","rmaPhotos",true)}`;
-  phone.innerHTML=`<div class="ph-head"><button class="back" id="back">→ לרשימה</button><div class="t">${d.cust}</div><div class="m">${d.addr}, ${d.city} · <a href="https://waze.com/ul?q=${encodeURIComponent(d.addr+" "+d.city)}" target="_blank" rel="noopener" style="color:inherit">ניווט</a> · ${d.phone}</div>
-    <div class="m">${d.amount?fmt(d.amount)+" · "+payTxt(d):"שולם מראש"} · ${d.boxes} ארגזים</div>
+    ${draft.lines.length?`<div class="sub" style="text-align:center">${t("addMore")}</div>`:""}
+    <div class="paygrid">${["check","cash","credit"].map(m=>`<button class="paybtn" data-add="${m}">${draft.lines.length?"+ ":""}${payLabel(m)}${!draft.lines.length&&m===d.method?`<small>${t("perOrder")}</small>`:""}</button>`).join("")}</div>`}
+  if(k==="rma")body=`<div class="q">${t("anyReturns")}</div><p class="sub">${t("returnsOpt")}</p>${photoBtn("f-rma",t("photoReturn"),"rmaPhotos")}`;
+  phone.innerHTML=`<div class="ph-head"><button class="back" id="back">${t("back")}</button><div class="t">${L(d.cust)}</div><div class="m">${L(d.addr)} · <a href="https://waze.com/ul?q=${encodeURIComponent(d.addr.he)}" target="_blank" rel="noopener">${t("navigate")}</a> · <span class="ltr">${d.phone}</span></div>
+    <div class="m">${d.amount?fmt(d.amount)+" · "+payTxt(d):t("prepaid")} · ${boxes(d.boxes)}</div>
     <div class="dots">${steps.map((s,i)=>`<span class="${i<draft.step?"done":i===draft.step?"cur":""}">${titles[s]}</span>`).join("")}</div></div>${tallyBar()}
-    <div class="ph-body wiz">${preview?'<p class="hint" style="margin:0">מצב סקירה: "הבא" פתוח גם בלי למלא</p>':""}${body}</div>
-    <div class="wizfoot">${draft.step>0?`<button class="btn sec2" id="prev">הקודם</button>`:""}<button class="btn" id="next" ${stepOk(d,k)?"":"disabled"}>${last?"סיום מסירה":"הבא"}</button></div>`;
+    <div class="ph-body wiz">${preview?`<p class="hint">${t("demoHint")}</p>`:""}${body}</div>
+    <div class="wizfoot">${draft.step>0?`<button class="btn sec2" id="prev">${t("prev")}</button>`:""}<button class="btn" id="next" ${stepOk(d,k)?"":"disabled"}>${last?t("finish"):t("next")}</button></div>`;
   const $=q=>phone.querySelector(q);
   $("#back").onclick=()=>{open=null;renderList()};
   if($("#prev"))$("#prev").onclick=()=>{draft.step--;renderStop()};
-  $("#next").onclick=()=>{if(last)finish();else{draft.step++;renderStop()}};
+  $("#next").onclick=()=>{if(last)finish();else{draft.step++;renderStop();window.scrollTo(0,0)}};
   bindFile("f-photo","photos");bindFile("f-rma","rmaPhotos");
-  phone.querySelectorAll("[data-demo]").forEach(b=>b.onclick=()=>{const kk=b.dataset.demo;draft[kk].push(ph(kk==="photos"?"תמונת מסירה":"חזרה",kk==="photos"?160:0));renderStop()});
+  phone.querySelectorAll("[data-demo]").forEach(b=>b.onclick=()=>{const kk=b.dataset.demo;draft[kk].push(ph(kk==="photos"?"phDelivery":"phReturn",kk==="photos"?160:0));renderStop()});
   if(k==="box"){$("#bx-minus").onclick=()=>{draft.boxes=Math.max(0,draft.boxes-1);renderStop()};$("#bx-plus").onclick=()=>{draft.boxes++;renderStop()};
     $("#fail").onclick=()=>{draft.failOpen=!draft.failOpen;renderStop()};
-    phone.querySelectorAll("[data-reason]").forEach(b=>b.onclick=()=>{d.status="failed";d.closedAt=Date.now();d.time=now();d.reason=b.dataset.reason;d.seq=++doneCount;showPayload(d);sel=d.id;open=null;renderList();renderOffice()})}
-  if(k==="box"){initSig();const sg=$("#signer");sg.oninput=()=>{draft.signer=sg.value;refreshNext()}}
+    phone.querySelectorAll("[data-reason]").forEach(b=>b.onclick=()=>{d.status="failed";d.closedAt=Date.now();d.time=now();d.reason=b.dataset.reason;d.seq=++doneCount;sel=d.id;open=null;renderList();renderOffice()});
+    initSig();const sg=$("#signer");sg.oninput=()=>{draft.signer=sg.value;refreshNext()}}
   if(k==="pay"){
     phone.querySelectorAll("[data-add]").forEach(b=>b.onclick=()=>{const rem=Math.max(0,d.amount-paidSum(draft.lines));draft.lines.push({type:b.dataset.add,amount:rem,photo:null});renderStop()});
     phone.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{draft.lines.splice(+b.dataset.del,1);renderStop()});
     phone.querySelectorAll("[data-ocr]").forEach(b=>b.onclick=()=>{const l=draft.lines[+b.dataset.ocr];l.edit=!l.edit;renderStop()});
-    phone.querySelectorAll("[data-ldemo]").forEach(b=>b.onclick=()=>{const l=draft.lines[+b.dataset.ldemo];l.photo=l.type==="check"?checkImg():ph("צילום מזומן",40);if(l.type==="check")runOcr(l);renderStop()});
-    phone.querySelectorAll("input[data-lphoto]").forEach(inp=>inp.onchange=()=>{const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const l=draft.lines[+inp.dataset.lphoto];l.photo=r.result;if(l.type==="check")runOcr(l);renderStop()};r.readAsDataURL(f)});
+    phone.querySelectorAll("[data-ldemo]").forEach(b=>b.onclick=()=>{const l=draft.lines[+b.dataset.ldemo];l.photo=l.type==="check"?checkImg():ph("phCash",40);if(l.type==="check")readCheck(l);renderStop()});
+    phone.querySelectorAll("input[data-lphoto]").forEach(inp=>inp.onchange=()=>{const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const l=draft.lines[+inp.dataset.lphoto];l.photo=r.result;if(l.type==="check")readCheck(l);renderStop()};r.readAsDataURL(f)});
     phone.querySelectorAll("[data-l]").forEach(inp=>inp.oninput=()=>{const i=+inp.dataset.l,l=draft.lines[i];l[inp.dataset.f]=inp.value;
       $("#paid-sum").textContent=fmt(paidSum(draft.lines));const r=$("#rem");r.textContent=remText(d);r.className=paidSum(draft.lines)===d.amount?"ok":"warn";
       const w=phone.querySelector(`#lw-${i}`);if(w)w.innerHTML=lineWarns(d,l,i);if(inp.dataset.f==="amount"){draft.diffReason=null;$("#diffbox").innerHTML=diffBox(d);bindDiff()}refreshNext()});
     const bindDiff=()=>phone.querySelectorAll("[data-diff]").forEach(b=>b.onclick=()=>{draft.diffReason=b.dataset.diff;$("#diffbox").innerHTML=diffBox(d);bindDiff();refreshNext()});bindDiff()}
 }
-function boxWarn(d){return draft.boxes===0?"0 ארגזים זו לא מסירה. אם הלקוח לא קיבל, לחץ למטה.":draft.boxes!==d.boxes?`${draft.boxes<d.boxes?"חסרים":"עודף של"} ${Math.abs(d.boxes-draft.boxes)} ארגזים. המסירה תסומן כחלקית.`:""}
+function boxWarn(d){return draft.boxes===0?t("box0"):draft.boxes<d.boxes?t("boxShort",d.boxes-draft.boxes):draft.boxes>d.boxes?t("boxExtra",draft.boxes-d.boxes):""}
 function refreshNext(){const d=byId(open);const k=wizSteps(d)[draft.step];phone.querySelector("#next").disabled=!stepOk(d,k)}
-function diffBox(d){if(!draft.lines.length||paidSum(draft.lines)===d.amount)return "";const r=d.amount-paidSum(draft.lines);
-  return `<div class="pline"><b style="color:var(--signal)">${r>0?"הלקוח משלם פחות":"הלקוח משלם יותר"}? למה:</b><div class="row">${(r>0?["ישלים בהמשך","הנחה מאושרת","מחלוקת על הסחורה"]:["יתרת חוב קודמת","טעות בהזמנה"]).map(x=>`<button class="chip" data-diff="${x}" aria-pressed="${draft.diffReason===x}">${x}</button>`).join("")}</div></div>`}
-function remText(d){const r=d.amount-paidSum(draft.lines);return r===0?"הסכום מלא":r>0?`חסר ${fmt(r)}`:`עודף ${fmt(-r)}`}
+function diffBox(d){if(!draft.lines.length||paidSum(draft.lines)===d.amount)return "";const r=d.amount-paidSum(draft.lines);const opts=r>0?["later","discount","dispute"]:["debt","order"];
+  return `<div class="pline"><b style="color:var(--signal)">${r>0?t("paysLess"):t("paysMore")}</b><div class="row">${opts.map(x=>`<button class="chip" data-diff="${x}" aria-pressed="${draft.diffReason===x}">${t("diffs")[x]}</button>`).join("")}</div></div>`}
+function remText(d){const r=d.amount-paidSum(draft.lines);return r===0?t("full"):r>0?t("short",fmt(r)):t("over",fmt(-r))}
 function lineOk(l){if(!(+l.amount>0))return false;if(l.type==="cash")return !!l.photo;if(l.type==="check")return !!l.photo&&["checkNum","bank","branch","account","dueDate"].every(k=>String(l[k]||"").trim());return true}
 function payValid(d){if(!d.amount)return true;return draft.lines.length>0&&draft.lines.every(lineOk)&&(paidSum(draft.lines)===d.amount||!!draft.diffReason)}
 function lineWarns(d,l,i){const w=[];
-  if(l.type==="check"){if(l.drawerId&&d.taxId&&l.drawerId!==d.taxId)w.push("שיק של צד ג' (ת.ז בעל החשבון שונה מהלקוח).");
-    if(l.dueDate&&d.checkDays){const days=Math.round((new Date(l.dueDate)-new Date("2026-09-30"))/864e5);if(days>d.checkDays)w.push(`פירעון רחוק ב-${days-d.checkDays} ימים מתנאי התשלום (שיק ${d.checkDays}).`)}
+  if(l.type==="check"){if(l.drawerId&&d.taxId&&l.drawerId!==d.taxId)w.push(t("thirdParty"));
+    if(l.dueDate&&d.checkDays){const days=Math.round((new Date(l.dueDate)-new Date("2026-09-30"))/864e5);if(days>d.checkDays)w.push(t("dueFar",days-d.checkDays,d.checkDays))}
     if(l.checkNum){const same=draft.lines.some((o,j)=>j!==i&&o.type==="check"&&o.checkNum===l.checkNum&&o.account===l.account);
       const other=D.find(x=>x.id!==d.id&&linesOf(x).some(o=>o.type==="check"&&o.checkNum===l.checkNum&&o.account===l.account));
-      if(same)w.push(`שיק ${l.checkNum} כבר נסרק בנקודה הזו.`);if(other)w.push(`שיק ${l.checkNum} כבר נסרק היום אצל ${other.cust}.`)}}
+      if(same)w.push(t("dupHere",l.checkNum));if(other)w.push(t("dupOther",l.checkNum,L(other.cust)))}}
   return w.map(x=>`<div>${x}</div>`).join("")}
 function lineCard(d,l,i){const need=l.type!=="credit";
-  return `<div class="pline ${lineOk(l)?"ok":""}"><div class="pl-h"><b>${payLabel[l.type]}</b><label class="pl-amt">₪<input type="number" inputmode="decimal" data-l="${i}" data-f="amount" value="${l.amount}"></label><button class="small" data-del="${i}" aria-label="הסר">הסר</button></div>
-    ${need?(l.photo?`<div class="pl-ph"><img src="${l.photo}" alt=""><span class="sub">${l.type==="check"&&l.checkNum?`${l.checkNum} · ${l.bank}/${l.branch}/${l.account}<br>${l.drawerName} <button class="small" data-ocr="${i}">תיקון</button>`:"צולם"}</span></div>`
-      :`<div class="bigfile"><label for="lp-${i}" class="bigbtn" style="padding:14px">צלם ${payLabel[l.type]}</label><input id="lp-${i}" data-lphoto="${i}" type="file" accept="image/*" capture="environment"><button class="small" data-ldemo="${i}">דוגמה</button></div>`):""}
-    ${l.type==="check"&&l.photo&&l.edit?`<div class="grid2">${[["checkNum","מס' שיק"],["bank","בנק"],["branch","סניף"],["account","חשבון"],["drawerName","בעל החשבון"],["drawerId","ת.ז / ח.פ"]].map(([k2,lb])=>`<label class="fld">${lb}<input type="text" data-l="${i}" data-f="${k2}" value="${l[k2]||""}"></label>`).join("")}</div>`:""}
-    ${l.type==="check"&&l.photo?`<label class="fld">תאריך פירעון<input type="date" data-l="${i}" data-f="dueDate" value="${l.dueDate||""}"></label>`:""}
+  const fields=[["checkNum","fCheckNum"],["bank","fBank"],["branch","fBranch"],["account","fAccount"],["drawerName","fDrawer"],["drawerId","fDrawerId"]];
+  return `<div class="pline ${lineOk(l)?"ok":""}"><div class="pl-h"><b>${payLabel(l.type)}</b><label class="pl-amt">₪<input type="number" inputmode="decimal" data-l="${i}" data-f="amount" value="${l.amount}"></label><button class="small" data-del="${i}">${t("remove")}</button></div>
+    ${need?(l.photo?`<div class="pl-ph"><img src="${l.photo}" alt=""><span class="sub">${l.type==="check"&&l.checkNum?`<span class="ltr">${l.checkNum} · ${l.bank}/${l.branch}/${l.account}</span><br>${l.drawerName} <button class="small" data-ocr="${i}">${t("fix")}</button>`:t("photographed")}</span></div>`
+      :`<div class="bigfile"><label for="lp-${i}" class="bigbtn" style="padding:14px">${t("photoOf",payLabel(l.type))}</label><input id="lp-${i}" data-lphoto="${i}" type="file" accept="image/*" capture="environment"><button class="small" data-ldemo="${i}">${t("sample")}</button></div>`):""}
+    ${l.type==="check"&&l.photo&&l.edit?`<div class="grid2">${fields.map(([k2,lb])=>`<label class="fld">${t(lb)}<input type="text" data-l="${i}" data-f="${k2}" value="${l[k2]||""}"></label>`).join("")}</div>`:""}
+    ${l.type==="check"&&l.photo?`<label class="fld">${t("dueDate")}<input type="date" data-l="${i}" data-f="dueDate" value="${l.dueDate||""}"></label>`:""}
     <div class="warn" id="lw-${i}">${lineWarns(d,l,i)}</div></div>`}
-let ocrN=0;
-function runOcr(l){Object.assign(l,{checkNum:String(5001917+(ocrN++)),bank:"10",branch:"647",account:"01234567",drawerName:"ישראל ישראלי",drawerId:"123456782",ocr:true})}
-function updateReady(){refreshNext()}
+/* Demo only: fills sample check values. The real reading is up to the developer. */
+let scanN=0;
+function readCheck(l){Object.assign(l,{checkNum:String(1000002+(scanN++)),bank:"10",branch:"647",account:"01234567",drawerName:"Israel Israeli",drawerId:"123456782"})}
 function keepScroll(fn){const y=window.scrollY;fn();window.scrollTo(0,y)}
 function bindFile(id,key){const inp=phone.querySelector("#"+id);if(!inp)return;inp.onchange=()=>{[...inp.files].forEach(f=>{const r=new FileReader();r.onload=()=>{draft[key].push(r.result);renderStop()};r.readAsDataURL(f)})}}
-let sigCanvas;
-function initSig(){const c=phone.querySelector("#sig");sigCanvas=c;const r=c.getBoundingClientRect(),dpr=window.devicePixelRatio||1;c.width=r.width*dpr;c.height=r.height*dpr;const x=c.getContext("2d");x.scale(dpr,dpr);x.lineWidth=2.5;x.lineCap="round";x.strokeStyle=getComputedStyle(document.body).color;
+function initSig(){const c=phone.querySelector("#sig");const r=c.getBoundingClientRect(),dpr=window.devicePixelRatio||1;c.width=r.width*dpr;c.height=r.height*dpr;const x=c.getContext("2d");x.scale(dpr,dpr);x.lineWidth=2.5;x.lineCap="round";x.strokeStyle="#17211d";
   if(draft.sigData){const im=new Image();im.onload=()=>x.drawImage(im,0,0,r.width,r.height);im.src=draft.sigData}
   let down=false;const p=e=>{const b=c.getBoundingClientRect();return[e.clientX-b.left,e.clientY-b.top]};
   c.onpointerdown=e=>{down=true;c.setPointerCapture(e.pointerId);x.beginPath();x.moveTo(...p(e))};
@@ -387,69 +463,74 @@ function initSig(){const c=phone.querySelector("#sig");sigCanvas=c;const r=c.get
   c.onpointerup=()=>{if(!down)return;down=false;draft.sig=true;draft.sigData=c.toDataURL();refreshNext()};
   phone.querySelector("#clr").onclick=()=>{x.clearRect(0,0,c.width,c.height);draft.sig=false;draft.sigData=null;refreshNext()};
 }
-function now(){return new Date().toLocaleTimeString("he-IL",{hour:"2-digit",minute:"2-digit"})}
-function finish(){const d=byId(open);if(!d||d.status!=="pending")return;delete drafts[d.id];d.closedAt=Date.now();if(preview){if(d.amount&&!draft.lines.length)draft.lines.push({type:d.method,amount:d.amount,photo:null});draft.lines.forEach(l=>{if(l.type==="check"&&!l.checkNum){runOcr(l);l.dueDate=l.dueDate||"2026-11-06"}if(l.type!=="credit"&&!l.photo)l.photo=l.type==="check"?checkImg():ph("צילום מזומן",40)});if(!draft.signer.trim())draft.signer=d.contact;if(paidSum(draft.lines)!==d.amount&&!draft.diffReason)draft.diffReason="ישלים בהמשך"}
-  d.status="completed";d.diffReason=draft.diffReason||null;d.seq=++doneCount;d.boxesDelivered=draft.boxes;d.time=now();d.lines=draft.lines.map(l=>({...l,amount:+l.amount}));d.rma=draft.rmaPhotos.length;
+function now(){return new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})}
+function finish(){const d=byId(open);if(!d||d.status!=="pending")return;delete drafts[d.id];d.closedAt=Date.now();
+  if(preview){if(d.amount&&!draft.lines.length)draft.lines.push({type:d.method,amount:d.amount,photo:null});draft.lines.forEach(l=>{if(l.type==="check"&&!l.checkNum){readCheck(l);l.dueDate=l.dueDate||"2026-11-06"}if(l.type!=="credit"&&!l.photo)l.photo=l.type==="check"?checkImg():ph("phCash",40)});if(!draft.signer.trim())draft.signer=L(d.contact);if(paidSum(draft.lines)!==d.amount&&!draft.diffReason)draft.diffReason="later"}
+  d.status="completed";d.diffReason=draft.diffReason||null;d.seq=++doneCount;d.boxesDelivered=draft.boxes;d.time=now();d.lines=draft.lines.map(l=>({...l,amount:+l.amount}));
   d.res={photos:draft.photos,sig:draft.sigData||sigImg(),signer:draft.signer,rmaPhotos:draft.rmaPhotos};
-  showPayload(d);sel=d.id;open=null;renderList();renderOffice();
-  const t=document.createElement("div");t.className="toast";t.textContent="המסירה נשלחה למערכת הראשית";phone.querySelector(".ph-body").prepend(t);setTimeout(()=>t.remove(),2600)}
+  sel=d.id;open=null;renderList();renderOffice();window.scrollTo(0,0);
+  const toast=document.createElement("div");toast.className="toast";toast.textContent=t("sent");phone.querySelector(".ph-body").prepend(toast);setTimeout(()=>toast.remove(),2600)}
 function renderDone(d){const canUndo=d.closedAt&&Date.now()-d.closedAt<10*60*1000;
-  phone.innerHTML=`<div class="ph-head"><button class="back" id="back">→ חזרה לרשימה</button></div>
-  <div class="ph-body">${pointHTML({...d,driver:route.driver})}${canUndo?`<button class="btn sec" id="undo">טעיתי, לפתוח מחדש (עד 10 דקות מהסגירה)</button>`:""}</div>`;
+  phone.innerHTML=`<div class="ph-head"><button class="back" id="back">${t("back")}</button></div>
+  <div class="ph-body">${pointHTML({...d,driver:driver.name})}${canUndo?`<button class="btn sec" id="undo">${t("undo")}</button>`:""}</div>`;
   phone.querySelector("#back").onclick=()=>{open=null;renderList()};
   if(canUndo)phone.querySelector("#undo").onclick=()=>{d.status="pending";delete d.res;delete d.lines;delete d.boxesDelivered;d.seq=null;d.closedAt=null;renderOffice();openStop(d.id)}}
-function showPayload(d){const idx=d.seq;const partial=d.status==="completed"&&d.boxesDelivered!==d.boxes;d.rev=(d.rev||0)+1;const o={event:d.status==="completed"?"delivery.completed":"delivery.failed",delivery_id:d.id,revision:d.rev,route_id:route.route_id,driver_id:route.driver_id,status:partial?"partial":d.status,completed_at:"2026-09-30T"+d.time+":00+03:00",actual_sequence:idx,boxes_expected:d.boxes,boxes_delivered:d.status==="completed"?d.boxesDelivered:0,point_url:"https://deliver.example.com/view/"+d.id};
-  if(d.status==="completed"){o.proof_of_delivery={photos:d.res.photos.map((_,i)=>({url:`https://files.example.com/${d.id}/pod_${i+1}.jpg`})),signature:{url:`https://files.example.com/${d.id}/signature.png`,signer_name:d.res.signer}};
-    o.payments=linesOf(d).map((l,i)=>({line:i+1,method:l.type,amount:l.amount,status:"to_review",
-      ...(l.photo?{photo_url:`https://files.example.com/${d.id}/payment_${i+1}.jpg`}:{}),
-      ...(l.type==="check"?{check:{check_number:l.checkNum,bank:l.bank,branch:l.branch,account:l.account,drawer_name:l.drawerName,drawer_id:l.drawerId,due_date:l.dueDate,third_party:!!(l.drawerId&&d.taxId&&l.drawerId!==d.taxId)}}:{})}));
-    o.amount_due=d.amount;o.amount_collected=paidSum(linesOf(d));if(d.diffReason)o.amount_diff_reason=d.diffReason;
-    o.rma=d.res.rmaPhotos.map((_,i)=>({photos:[{url:`https://files.example.com/${d.id}/rma_${i+1}.jpg`}]}))} else o.reason=d.reason;
-  const pre=document.getElementById("payload");pre.textContent=JSON.stringify(o,null,2);pre.hidden=false;document.getElementById("payload-hint").textContent="ההודעה האחרונה שנשלחה ("+d.id+"):"}
 
-/* ---------- office ---------- */
-function stBadge(r){const part=r.status==="completed"&&r.boxesDelivered!=null&&r.boxesDelivered!==r.boxes;return part?'<span class="st partial">נמסר חלקית</span>':`<span class="st ${r.status}">${{pending:"בדרך",completed:"נמסר",failed:"לא נמסר"}[r.status]}</span>`}
-function allRows(){return [...order.map(id=>{const d=byId(id);return{...d,driver:route.driver}}),...others]}
-function lineText(l){return l.type==="check"?`<b>שיק ${l.checkNum||""}</b> · ${l.bank}/${l.branch}/${l.account} · פירעון ${fmtDate(l.dueDate)} · ${fmt(l.amount)}`:`<b>${payLabel[l.type]}</b> · ${fmt(l.amount)}`}
-function recvText(r){const ls=linesOf(r);if(r.status!=="completed"||!ls.length)return '<span class="sub">—</span>';return ls.map(l=>`<div>${lineText(l)}</div>`).join("")}
+/* ---------- main system: one "Delivery" column ---------- */
+function allRows(){return [...order.map(id=>({...byId(id),driver:driver.name})),...others]}
 function fmtDate(x){if(!x)return "";const [y,m,d]=x.split("-");return `${d}.${m}.${y}`}
-function cellLink(r){const t=r.status==="completed"?"נמסר":r.status==="failed"?"לא נמסר":"בדרך";return `<a class="stlink ${r.status}" href="#" data-open="${r.id}">${t}</a>`}
+function lineText(l){return l.type==="check"?`<b>${t("check")} ${l.checkNum||""}</b> · <span class="ltr">${l.bank}/${l.branch}/${l.account}</span> · ${fmtDate(l.dueDate)} · ${fmt(l.amount)}`:`<b>${payLabel(l.type)}</b> · ${fmt(l.amount)}`}
+function statusText(r){return r.status==="completed"?t("stDone"):r.status==="failed"?t("stFailed"):t("stPending")}
+function cellLink(r){return `<a class="stlink ${r.status}" href="#" data-open="${r.id}">${statusText(r)}</a>`}
 function linkOf(id){return "deliver.example.com/s/"+id.slice(-6)+"x7Q"}
 function renderOffice(){const rows=allRows();
-  document.getElementById("kpis").innerHTML=`<div class="kpi" style="flex-basis:100%"><span>עמודה חדשה אחת במערכת הראשית: <strong>"מסירה"</strong>. היא מתעדכנת לבד: קישור לנקודה, נמסר / לא נמסר, והתשלום שנגבה. התשלום נכתב לשורות התשלום הקיימות רק בלחיצה על "אשר והזן".</span></div>`;
+  document.getElementById("kpis").textContent=t("officeExplain");
   document.getElementById("rows").innerHTML=rows.map(r=>{const ls=linesOf(r),paid=r.status==="completed"&&ls.length;
     return `<div class="rcard ${r.id===sel?"sel":""}" data-id="${r.id}" role="button" tabindex="0">
-    <div class="rhead"><b class="num">${r.id}</b><span class="sub">${r.cust}</span></div>
-    <div class="rf"><span class="k">מסירה</span><span>${cellLink(r)}${paid?`<div class="paycell">${recvText(r)}${r.reviewed?'<span class="st completed">הוזן לשורות התשלום</span>':`<span class="row" style="margin-top:6px"><button class="chip approve" data-approve="${r.id}">אשר והזן</button><span class="sub">לבדיקה</span></span>`}</div>`:""}</span></div></div>`}).join("");
+    <div class="rhead"><b class="num">${r.id}</b><span class="sub">${L(r.cust)}</span></div>
+    <div class="rf"><span class="k">${t("colDelivery")}</span><span>${cellLink(r)}${paid?`<div class="paycell">${ls.map(l=>`<div>${lineText(l)}</div>`).join("")}${r.reviewed?`<span><span class="st completed">${t("entered")}</span></span>`:`<span class="row" style="margin-top:6px"><button class="chip approve" data-approve="${r.id}">${t("approve")}</button><span class="sub">${t("toReview")}</span></span>`}</div>`:""}</span></div></div>`}).join("");
   document.querySelectorAll("#rows .rcard").forEach(c=>c.onclick=e=>{e.preventDefault();const ap=e.target.closest("[data-approve]");
     if(ap){const id=ap.dataset.approve;const d=byId(id)||others.find(o=>o.id===id);d.reviewed=true;sel=id;renderOffice();return}
-    sel=c.dataset.id;renderOffice()});
+    sel=c.dataset.id;renderOffice();
+    if(window.matchMedia("(max-width:899px)").matches)document.getElementById("panel").scrollIntoView({behavior:"smooth",block:"start"})});
   renderPanel(rows.find(r=>r.id===sel));
 }
-function renderPanel(r){const p=document.getElementById("panel");if(!r){p.innerHTML='<p class="empty">בחר מסירה בטבלה</p>';return}p.innerHTML=pointHTML(r)}
+function renderPanel(r){const p=document.getElementById("panel");if(!r){p.innerHTML=`<p class="empty">${t("pickRow")}</p>`;return}p.innerHTML=pointHTML(r)}
 function pointHTML(r){
   const mine=D.includes(byId(r.id));const pos=mine?D.filter(d=>d.status==="pending").sort((a,b)=>order.indexOf(a.id)-order.indexOf(b.id)).findIndex(d=>d.id===r.id):-1;
-  const head=r.status==="completed"?`<span class="st completed">נמסר ב-${r.time}</span>`:r.status==="failed"?`<span class="st failed">לא נמסר · ${r.reason||""}</span>`:(mine&&!accepted)?`<span class="st pending">ממתין ליציאה</span>`:`<span class="st pending">בדרך${pos>=0?` · ${pos===0?"הנקודה הבאה":pos===1?"מסירה אחת לפני":pos+" מסירות לפני"}`:""}</span>`;
-  let body=`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><div><h3 style="margin:0">${r.cust}</h3><div class="sub">${r.id} · ${r.driver}</div></div>${head}</div>`;
+  const part=r.status==="completed"&&r.boxesDelivered!=null&&r.boxesDelivered!==r.boxes;
+  const head=r.status==="completed"?`<span class="st ${part?"partial":"completed"}">${part?t("stPartial")+" · "+r.time:t("doneAt",r.time)}</span>`:r.status==="failed"?`<span class="st failed">${t("stFailed")} · ${t("reasons")[r.reason]||""}</span>`:(mine&&!accepted)?`<span class="st pending">${t("notYet")}</span>`:`<span class="st pending">${t("stPending")}${pos>=0?` · ${pos===0?t("next1"):pos===1?t("before1"):t("beforeN",pos)}`:""}</span>`;
+  let body=`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><div><h3>${L(r.cust)}</h3><div class="sub">${r.id} · ${L(r.driver)}</div></div>${head}</div>`;
   if(r.status==="completed"&&r.res){const ls=linesOf(r);
     const tile=(src,l,bg)=>src?`<button class="tile" data-full="${src}" aria-label="${l}"><img src="${src}" alt="" style="${bg||""}"><span>${l}</span></button>`:`<div class="tile empty"><span>${l}</span></div>`;
-    body+=`<div class="tiles">${tile(r.res.photos[0],"מסירה")}${tile(r.res.sig,"חתימה","background:#fff;object-fit:contain")}${ls.filter(l=>l.photo).map(l=>tile(l.photo,lineLabel(l).split(" ")[0])).join("")}${r.res.rmaPhotos.length?tile(r.res.rmaPhotos[0],"חזרות ("+r.res.rmaPhotos.length+")"):'<div class="tile empty"><span>אין חזרות</span></div>'}</div>
-    <dl class="info"><dt>חתם</dt><dd>${r.res.signer}</dd>${ls.length?`<dt>תשלום</dt><dd><b>${fmt(paidSum(ls))}</b>${paidSum(ls)!==r.amount?` <span style="color:var(--signal)">(מתוך ${fmt(r.amount)}${r.diffReason?" · "+r.diffReason:""})</span>`:""}</dd>`:""}
-    ${ls.map(l=>`<dt>${payLabel[l.type]}</dt><dd>${l.type==="check"?`${l.checkNum} · ${l.bank}/${l.branch}/${l.account} · ${fmtDate(l.dueDate)} · `:""}${fmt(l.amount)}${l.type==="check"&&l.drawerId&&r.taxId&&l.drawerId!==r.taxId?` <span style="color:var(--signal);font-weight:600">צד ג'</span>`:""}</dd>`).join("")}</dl>`}
-  else if(r.status==="completed") body+=`<p class="empty">דוגמה: מסירה של נהג אחר, ללא תמונות בהדמיה.</p>`;
-  else if(r.status==="pending") body+=`<p class="empty">תמונה, חתימה ותשלום יופיעו כאן כשהנהג יסיים.</p>`;
-  body+=`<div class="lnk" style="opacity:.7">${linkOf(r.id)}</div>`;
+    body+=`<div class="tiles">${tile(r.res.photos[0],t("tDelivery"))}${tile(r.res.sig,t("tSignature"),"background:#fff;object-fit:contain")}${ls.filter(l=>l.photo).map(l=>tile(l.photo,payLabel(l.type))).join("")}${r.res.rmaPhotos.length?tile(r.res.rmaPhotos[0],t("tReturns",r.res.rmaPhotos.length)):`<div class="tile empty"><span>${t("noReturnsTile")}</span></div>`}</div>
+    <dl class="info"><dt>${t("signedBy")}</dt><dd>${r.res.signer}</dd>${ls.length?`<dt>${t("payment")}</dt><dd><b>${fmt(paidSum(ls))}</b>${paidSum(ls)!==r.amount?` <span style="color:var(--signal)">(${t("ofTotal",fmt(r.amount))}${r.diffReason?" · "+t("diffs")[r.diffReason]:""})</span>`:""}</dd>`:""}
+    ${ls.map(l=>`<dt>${payLabel(l.type)}</dt><dd>${l.type==="check"?`<span class="ltr">${l.checkNum} · ${l.bank}/${l.branch}/${l.account}</span> · ${fmtDate(l.dueDate)} · `:""}${fmt(l.amount)}${l.type==="check"&&l.drawerId&&r.taxId&&l.drawerId!==r.taxId?` <span style="color:var(--signal);font-weight:600">${t("thirdTag")}</span>`:""}</dd>`).join("")}</dl>`}
+  else if(r.status==="completed") body+=`<p class="empty">${t("otherDriver")}</p>`;
+  else if(r.status==="pending") body+=`<p class="empty">${t("willAppear")}</p>`;
+  body+=`<div class="lnk">${linkOf(r.id)}</div>`;
   return body}
-/* lightbox */
-document.addEventListener("click",e=>{const t=e.target.closest(".tile[data-full]");if(t){const lb=document.createElement("div");lb.className="lightbox";lb.innerHTML=`<img src="${t.dataset.full}" alt="">`;lb.onclick=()=>lb.remove();document.body.appendChild(lb);return}});
-/* tabs */
+document.addEventListener("click",e=>{const tl=e.target.closest(".tile[data-full]");if(tl){const lb=document.createElement("div");lb.className="lightbox";lb.innerHTML=`<img src="${tl.dataset.full}" alt="">`;lb.onclick=()=>lb.remove();document.body.appendChild(lb)}});
+
+/* ---------- chrome: tabs, language, demo ---------- */
 const tabs={driver:document.getElementById("tab-driver"),office:document.getElementById("tab-office")};
-function show(t){tabs.driver.setAttribute("aria-selected",t==="driver");tabs.office.setAttribute("aria-selected",t==="office");
-  document.getElementById("view-driver").hidden=t!=="driver";document.getElementById("view-office").hidden=t!=="office";
-  if(t==="office")renderOffice();else if(open&&byId(open).status==="pending")renderStop();}
+let view="driver";
+function show(v){view=v;tabs.driver.setAttribute("aria-selected",v==="driver");tabs.office.setAttribute("aria-selected",v==="office");
+  document.getElementById("view-driver").hidden=v!=="driver";document.getElementById("view-office").hidden=v!=="office";
+  if(v==="office")renderOffice();else if(open&&byId(open).status==="pending")renderStop();}
+function rerender(){if(open){const d=byId(open);if(d.status==="pending")renderStop();else renderDone(d)}else renderList();renderOffice()}
+function applyLang(){document.documentElement.lang=lang;document.documentElement.dir=lang==="he"?"rtl":"ltr";
+  document.getElementById("lang-en").setAttribute("aria-pressed",lang==="en");document.getElementById("lang-he").setAttribute("aria-pressed",lang==="he");
+  document.getElementById("app-name").textContent=t("appName");tabs.driver.textContent=t("tabDriver");tabs.office.textContent=t("tabOffice");
+  document.getElementById("demo-txt").textContent=t("demo");document.getElementById("how-h").textContent=t("howH");
+  document.getElementById("how").innerHTML=t("how").map(x=>`<li>${x}</li>`).join("");document.getElementById("reset-terms").textContent=t("resetTerms");
+  document.title=t("appName")}
+function setLang(l){lang=l;try{localStorage.setItem("lang",l)}catch(e){}applyLang();rerender()}
+document.getElementById("lang-en").onclick=()=>setLang("en");document.getElementById("lang-he").onclick=()=>setLang("he");
 tabs.driver.onclick=()=>show("driver");tabs.office.onclick=()=>show("office");
-document.getElementById("preview").onchange=e=>{preview=e.target.checked;if(open&&byId(open).status==="pending")renderStop();else renderList()};
-document.getElementById("reset-terms").onclick=()=>{accepted=null;checks=[false,false,false];open=null;show("driver");renderList();renderOffice()};
+document.getElementById("preview").onchange=e=>{preview=e.target.checked;rerender()};
+document.getElementById("reset-terms").onclick=()=>{accepted=null;checksOk=[false,false,false];open=null;show("driver");renderList();renderOffice();window.scrollTo(0,0)};
+applyLang();
 if(location.hash==="#office")show("office");
 renderList();renderOffice();
 })();

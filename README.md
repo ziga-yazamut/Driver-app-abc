@@ -1,68 +1,37 @@
 # Driver App ABC
 
-A delivery app for drivers that plugs into our existing main system by **delivery ID**.
+A clickable **UI mockup** of the driver delivery app. It shows the screens and the flow we expect, nothing more.
 
-## The idea in one minute
+Open [`mockup/index.html`](mockup/index.html) in a browser, or on a phone. Use the **EN / עב** switch at the top to change the language, and the **Driver / Main system** switch to change the view.
 
-1. The main system already creates a unique ID for every delivery. It sends the driver's deliveries to this app.
-2. The driver gets a link. For each delivery the driver:
-   - confirms the boxes
-   - takes a delivery photo and gets the customer's signature
-   - records the payment: check (photo, with OCR), cash (photo) or credit (just the amount)
-   - optionally photographs returns
-3. **One new column in the main system, "Delivery", gets everything back for each ID:**
+## What the mockup shows
 
-| When | What the "Delivery" column shows |
-|---|---|
-| Sent to the driver | A link to the delivery page, labeled "On the way" |
-| Driver closes the delivery | "Delivered" or "Not delivered" (same link) |
-| Payment was collected | The payment summary, marked **"To review"**, and an **"Approve"** button |
+**Driver (phone):**
+1. A start screen with three end-of-day rules. The deliveries appear only after the driver confirms them.
+2. The list of today's deliveries, in the order the main system sent them. The driver can drag to reorder.
+3. Each delivery is a 3-step wizard:
+   - boxes, a delivery photo and the customer's signature
+   - payment: one or more lines of check (photo), cash (photo) or credit (amount only)
+   - an optional photo of returns
+4. A strip at the top always shows the number of checks, the cash total and how many deliveries are done. An interim or day summary is always one tap away.
 
-4. Clicking **Approve** writes the payment into the **existing payment rows**. Nothing touches the payment rows before that, because check details come from OCR and a person checks them first.
+**Main system:** one new column, "Delivery", per delivery ID. It holds:
+- a link to the delivery page
+- delivered / not delivered
+- the payment collected, marked "To review", with an **Approve** button that writes it into the existing payment rows
 
-The same link works for the driver and the office. The office never opens the driver app.
+Everything in the mockup runs in the browser with sample data. Nothing is saved or sent anywhere, and check reading is faked.
 
-## What to build
+## Scope
 
-1. **Server:** implements [`api/openapi.yaml`](api/openapi.yaml).
-   - database
-   - photo storage
-   - tokenized links
-   - an outbound queue to the main system: retries, idempotent by `delivery_id` + `revision`, read-back check, alert on failure
-2. **Driver app (PWA):** follow [`mockup/index.html`](mockup/index.html). It must work offline and sync when the signal is back.
-3. **Main system integration**, through its official API only:
-   - read the deliveries
-   - write the "Delivery" column
-   - on Approve, create the payment rows
-4. **Check OCR:** already written in [`ocr/`](ocr/README.md) (Python + FastAPI). Run it on our server and calibrate it on 20–30 real check photos.
+The developer owns the API, check reading and the backend (.NET). The mockup only defines the UI and the behavior.
 
-## What's in the repo
+`api/` and `ocr/` are earlier drafts made without knowledge of the existing system. They are **not** requirements, and it is fine to ignore or delete them.
 
-| Path | What |
-|---|---|
-| `mockup/index.html` | Clickable mockup, one file. Open it in a browser. The second tab ("מה חוזר למערכת הראשית") shows the column. |
-| `api/openapi.yaml` | API spec. The webhook schema matches exactly what the mockup sends; a test checks this. |
-| `ocr/` | Check OCR, service and tests |
-| `docs/` | Full plan and test report (Hebrew) |
-
-## Tests
+## Mockup tests
 
 ```bash
-# mockup + API contract (Playwright)
 npm install && npx playwright install chromium && npm run test:mockup
-
-# OCR (needs tesseract-ocr + tesseract-ocr-heb)
-cd ocr && pip install -r requirements.txt && pytest
 ```
 
-GitHub Actions runs both on every push (`.github/workflows/tests.yml`).
-
-## Open questions (need an answer before building)
-
-- How do we read from and write to the main system: an API, file import, or something else?
-- Where does the delivery-to-driver assignment come from today?
-- In the MICR line, what does the "31" after the branch mean (`647` + `31`)?
-
-## Privacy
-
-Real check photos are never committed: they contain the drawer's name, ID and account. Put them in `ocr/samples/`, which is git-ignored. All numbers in the docs are placeholders.
+They cover every driver flow in both languages on a phone-sized screen.
