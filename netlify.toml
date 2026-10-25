@@ -1,0 +1,23 @@
+[build]
+  publish = "public"
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
+
+# The driver's link: /d/<GUID> (the same GUID as the main system's driver link)
+[[redirects]]
+  from = "/d/*"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/office"
+  to = "/office.html"
+  status = 200
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "no-referrer"

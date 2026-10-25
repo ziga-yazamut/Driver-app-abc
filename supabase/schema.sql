@@ -1,0 +1,59 @@
+-- Driver app: run once in Supabase → SQL Editor → New query → Run.
+-- Safe to run again: everything uses "if not exists".
+-- Only the Netlify server (with the secret key) reads and writes these tables.
+-- Row level security is on with no policies, so the public anon key sees nothing.
+-- The main system (abcmobile) stays the source of the deliveries; this keeps only what the app adds.
+
+-- One row per driver link (the GUID from the main system) and day
+create table if not exists driver_lists (
+  guid text primary key,
+  person text,
+  list_date text,
+  accepted_at timestamptz,             -- the driver confirmed the start-of-day rules
+  order_ids int[] not null default '{}', -- the driver's own order (DeliveryGUIDId)
+  closed_at timestamptz,               -- "Close the day"
+  updated_at timestamptz not null default now()
+);
+
+-- One row per delivery (DeliveryGUIDId in the main system)
+create table if not exists driver_results (
+  delivery_id int primary key,
+  guid text not null references driver_lists(guid),
+  company text,
+  status text not null check (status in ('delivered', 'not_delivered')),
+  reason text,                          -- not delivered: absent | refused | address | damaged
+  boxes_ordered int,
+  boxes_delivered int,
+  receiver_name text,
+  signature_path text,
+  package_paths text[] not null default '{}',
+  receipt_paths text[] not null default '{}',
+  amount_due numeric,
+  amount_paid numeric,
+  payments jsonb not null default '[]', -- [{type: check|cash|credit, amount, photo, checkNum, bank, branch, account, holder, holderId, dueDate}]
+  diff_reason text,
+  rma_paths text[] not null default '{}',
+  rma_note text,
+  finished_at timestamptz not null default now(),
+  main_sent_at timestamptz,             -- when it was sent to the main system (only with MAIN_WRITE=on)
+  main_error text,
+  updated_at timestamptz not null default now()
+);
+create index if not exists driver_results_guid on driver_results (guid);
+create index if not exists driver_results_finished on driver_results (finished_at);
+
+create table if not exists app_log (
+  id bigint generated always as identity primary key,
+  kind text not null,
+  at timestamptz not null default now(),
+  ok boolean not null,
+  info jsonb
+);
+
+alter table driver_lists enable row level security;
+alter table driver_results enable row level security;
+alter table app_log enable row level security;
+
+-- Photos (packages, receipts, checks, cash, returns, signatures). Private: shown only through short signed links.
+insert into storage.buckets (id, name, public) values ('driver-photos', 'driver-photos', false)
+on conflict (id) do nothing;
