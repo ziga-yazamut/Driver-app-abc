@@ -202,3 +202,14 @@ test('office: create a list, add and edit deliveries, results lock the row', asy
   await page.reload();
   await expect(page.locator('[data-edit]')).toHaveCount(0);
 });
+
+test('office: the sample button works without a driver name', async ({ browser }) => {
+  const page = await (await browser.newContext({ viewport: { width: 390, height: 844 } })).newPage();
+  await page.goto('/office');
+  await page.click('#lang-en');
+  await page.fill('#code', 'test'); await page.click('#go');
+  await page.click('#sample');
+  await expect(page.locator('#link')).toContainText('/d/');
+  await expect(page.locator('.mtable tbody tr')).toHaveCount(4);
+  await expect(page.locator('h2').first()).toContainText('Sample driver');
+});

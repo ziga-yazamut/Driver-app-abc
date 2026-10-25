@@ -37,7 +37,7 @@ const S={
  code:{en:"Office code",he:"קוד משרד"}, enter:{en:"Enter",he:"כניסה"}, wrong:{en:"Wrong code",he:"קוד שגוי"},
  notConfigured:{en:"ADMIN_CODE is not set in Netlify yet.",he:"עדיין לא הוגדר ADMIN_CODE ב-Netlify."},
  newList:{en:"New driver list",he:"רשימה חדשה לנהג"}, driver:{en:"Driver",he:"נהג"}, date:{en:"Date",he:"תאריך"},
- create:{en:"Create",he:"צור"}, sample:{en:"Create with 4 sample deliveries",he:"צור עם 4 מסירות לדוגמה"},
+ create:{en:"Create",he:"צור"}, sample:{en:"Create with 4 sample deliveries",he:"צור עם 4 מסירות לדוגמה"}, sampleDriver:{en:"Sample driver",he:"נהג לדוגמה"}, mkFailed:{en:"Did not work",he:"לא הצליח"},
  lists:{en:"Driver lists",he:"רשימות נהגים"}, none:{en:"No lists yet.",he:"אין עדיין רשימות."},
  count:{en:"{0} deliveries · {1} delivered · {2} not delivered",he:"{0} מסירות · {1} נמסרו · {2} לא נמסרו"},
  back:{en:"‹ All lists",he:"→ כל הרשימות"},
@@ -91,11 +91,14 @@ async function renderLists(){
   const j=await api("/api/office?code="+encodeURIComponent(code));
   const today=new Date(Date.now()+3*3600e3).toISOString().slice(0,10);
   app.innerHTML=`<p class="note">${j.typing?t("mainOff"):t("fromMain")}</p>
-  ${j.typing?`<div class="box"><h2>${t("newList")}</h2><div class="form"><label class="fld">${t("driver")}<input type="text" id="person"></label><label class="fld">${t("date")}<input type="date" id="date" value="${today}"></label><button class="btn small2" id="create">${t("create")}</button></div><button class="small" id="sample" style="align-self:flex-start">${t("sample")}</button></div>`:""}
+  ${j.typing?`<div class="box"><h2>${t("newList")}</h2><div class="form"><label class="fld">${t("driver")}<input type="text" id="person" required></label><label class="fld">${t("date")}<input type="date" id="date" value="${today}"></label><button class="btn small2" id="create">${t("create")}</button></div><button class="small" id="sample" style="align-self:flex-start">${t("sample")}</button><p id="mkerr" style="margin:0;color:var(--bad)"></p></div>`:""}
   <div class="box"><h2>${t("lists")}</h2><div class="lists">${j.lists.length?j.lists.map(l=>`<button class="li" data-g="${esc(l.guid)}"><span><b>${esc(l.person)}</b> · ${esc(l.list_date)}</span><span class="sub">${t("count",l.tasks??"–",l.delivered,l.failed)}</span></button>`).join(""):`<p class="sub">${t("none")}</p>`}</div></div>`;
   app.querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>{view=b.dataset.g;render()});
-  const mk=async op=>{const person=app.querySelector("#person").value.trim();if(!person){app.querySelector("#person").focus();return}const r=await api("/api/office",{op,person,date:app.querySelector("#date").value});view=r.guid;render()};
-  if(j.typing){app.querySelector("#create").onclick=()=>mk("create");app.querySelector("#sample").onclick=()=>mk("sample")}
+  const mk=async(op,b)=>{const pf=app.querySelector("#person");let person=pf.value.trim();if(!person){if(op!=="sample"){pf.focus();pf.reportValidity?.();return}person=t("sampleDriver")}
+    b.disabled=true;const e0=app.querySelector("#mkerr");e0.textContent="";
+    try{const r=await api("/api/office",{op,person,date:app.querySelector("#date").value});view=r.guid;render()}
+    catch(e){b.disabled=false;e0.textContent=e.status===503?t("notConfigured"):e.status===403?t("wrong"):t("mkFailed")+" ("+(e.status||"")+" "+e.message+")"}};
+  if(j.typing){app.querySelector("#create").onclick=e=>mk("create",e.target);app.querySelector("#sample").onclick=e=>mk("sample",e.target)}
 }
 
 const FIELDS=[["company","text"],["address","text"],["city","text"],["phone","tel"],["total","number"],["terms","text"],["boxes","number"],["comment","text"]];
