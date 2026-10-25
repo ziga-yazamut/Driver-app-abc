@@ -2,9 +2,15 @@
   "name": "driver-app-abc",
   "private": true,
   "scripts": {
-    "test:mockup": "playwright test"
+    "dev": "node test/devserver.mjs 8888",
+    "test": "node --test test/*.test.mjs && playwright test",
+    "test:mockup": "playwright test --project=mockup"
   },
   "devDependencies": {
     "@playwright/test": "1.56.1"
+  },
+  "description": "ABC driver app: static app + Netlify functions, Supabase for the app's own data. The main system (abcmobile) is connected last.",
+  "engines": {
+    "node": ">=20"
   }
 }

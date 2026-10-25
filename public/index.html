@@ -1,4 +1,419 @@
-<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Driver app</title>
-<body style="font-family:system-ui;padding:24px;line-height:1.5">
-<p>The driver app is being built. Meanwhile, the mockup: <a href="/mockup.html">/mockup.html</a></p>
+<!doctype html>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f6b5c">
+<title>ABC Driver</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700&family=Secular+One&display=swap">
+<link rel="icon" href="data:,">
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="/app.css">
+<style>
+body{padding:0;background:var(--bg)}
+.phone{max-width:560px;margin:0 auto;min-height:100dvh;border:0}
+@media (min-width:600px){.phone{border-inline:1px solid var(--line)}}
+.ph-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.langs{display:flex;gap:2px;background:rgba(255,255,255,.15);border-radius:99px;padding:2px}
+.langs button{all:unset;cursor:pointer;padding:4px 10px;border-radius:99px;font-size:.8rem;font-weight:700;color:var(--accent-ink);min-height:28px;display:grid;place-items:center}
+.langs button[aria-pressed="true"]{background:var(--accent-ink);color:var(--accent)}
+.msg{padding:32px 20px;text-align:center;display:flex;flex-direction:column;gap:12px;align-items:center}
+.msg b{font-size:1.15rem}
+.err{background:#fde8e6;color:var(--bad);border-radius:10px;padding:10px 12px;font-weight:600}
+.spin{width:28px;height:28px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--accent);animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.stop .tag{margin:0}
+.people{display:flex;flex-direction:column;gap:10px}
+.stop .c .q-wait{display:block}
+</style>
+<body>
+<main class="phone" id="phone"><div class="msg"><div class="spin"></div></div></main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
+<script>
+(function(){
+/* ABC driver app. The link /d/<GUID> is the access. Everything the driver does is kept on the phone first
+   (IndexedDB) and sent when there is signal, so nothing is lost in a basement or on the road. */
+
+/* ---------- language ---------- */
+const S={
+ hello:{en:"Hi {0}",he:"שלום {0}"},
+ listMeta:{en:"{0} · {1} deliveries · {2} done",he:"{0} · {1} נקודות · הושלמו {2}"},
+ waiting:{en:"{0} · {1} deliveries waiting for you",he:"{0} · {1} נקודות מסירה מחכות לך"},
+ boxesN:{en:"{0} boxes",he:"{0} ארגזים"}, box1:{en:"1 box",he:"ארגז אחד"},
+ dragHint:{en:"Drag ⋮⋮ to change the order",he:"גרור בידית ⋮⋮ כדי לשנות סדר"},
+ interim:{en:"Interim summary",he:"סיכום ביניים"}, allDone:{en:"All done: day summary",he:"כל הנקודות הושלמו: לסיכום יום"},
+ beforeStart:{en:"Before you start, confirm:",he:"לפני שמתחילים, סמן:"},
+ rules:{en:[["Checks","Each group of checks in a standard white envelope, closed. Write the line name and the total number of checks."],["Cash","An envelope with the total written on it. Each customer's cash in its own rubber band."],["Packages","Full customer name, large and clear, on every package. A clear form with each package. Properly packed only."]],
+        he:[["שיקים","כל קבוצת שיקים במעטפה לבנה סטנדרטית, סגורה. לציין על המעטפה את שם הקו ואת מספר השיקים סה\"כ."],["מזומן","מעטפה עם הסכום הכולל רשום עליה. המזומן של כל לקוח בגומייה נפרדת."],["חבילות","שם מלא, ברור וגדול, על כל חבילה. טופס ברור לכל חבילה. אריזה תקינה בלבד."]]},
+ notAccepted:{en:"Anything not by these rules will not be accepted.",he:"מה שלא לפי הנוהל לא יתקבל."},
+ accept:{en:"I confirm, start working",he:"מאשר, להתחיל לעבוד"},
+ checks:{en:"Checks",he:"שיקים"}, cash:{en:"Cash",he:"מזומן"}, credit:{en:"Credit",he:"אשראי"}, check:{en:"Check",he:"שיק"},
+ delivered:{en:"Delivered",he:"נמסרו"}, prepaid:{en:"Nothing to collect",he:"אין מה לגבות"},
+ back:{en:"‹ Back",he:"→ חזרה"},
+ daySummary:{en:"Day summary",he:"סיכום יום"},
+ envChecks:{en:"Checks envelope",he:"מעטפת שיקים"}, writeOn:{en:"Write on the envelope:",he:"לרשום על המעטפה:"},
+ envChecksLine:{en:"Line: {0} · Total checks: {1}",he:"קו: {0} · סה\"כ שיקים: {1}"},
+ envChecksNote:{en:"Standard white envelope, closed. Each check was already photographed at its delivery.",he:"מעטפה לבנה סטנדרטית, סגורה. כל שיק כבר צולם בנקודה שלו."},
+ envCash:{en:"Cash envelope",he:"מעטפת מזומן"}, cashLine:{en:"Total cash: {0}",he:"סה\"כ מזומן: {0}"},
+ cashNote:{en:"Inside, each customer in a separate rubber band:",he:"בתוך המעטפה, כל לקוח בגומייה נפרדת:"},
+ noCash:{en:"No cash today.",he:"אין מזומן היום."},
+ returnsH:{en:"Packages going back to the office",he:"חבילות שחוזרות למשרד"},
+ returnsNote:{en:"Write the customer name on each package, clearly. Proper packing only.",he:"לכתוב על כל חבילה את שם הלקוח, ברור וגדול. אריזה תקינה בלבד."},
+ noReturns:{en:"No packages to return.",he:"אין חבילות לחזרה."},
+ toDeposit:{en:"Cash to deposit",he:"מזומן להפקדה"}, creditN:{en:"{0} transactions",he:"{0} עסקאות"},
+ deliveredOf:{en:"{0} (incl. {1} partial)",he:"{0} (מתוכן {1} חלקיות)"},
+ notDelivered:{en:"Not delivered",he:"לא נמסרו"}, boxesBack:{en:"Boxes back to warehouse",he:"ארגזים שחוזרים למחסן"},
+ stillOpen:{en:"This is the current state. {0} deliveries are still open; the day closes when they're all done.",he:"זה מצב נכון לעכשיו. נשארו {0} נקודות פתוחות, והיום ייסגר כשכולן יסתיימו."},
+ waitSend:{en:"{0} deliveries are still waiting to send. Close the day when there's signal.",he:"{0} מסירות עדיין ממתינות לשליחה. אפשר לסגור את היום כשתהיה קליטה."},
+ closeDay:{en:"Close the day",he:"סגירת יום"}, dayClosed:{en:"Day closed",he:"היום נסגר"},
+ stepBox:{en:"Delivery + signature",he:"מסירה וחתימה"}, stepPay:{en:"Payment",he:"תשלום"}, stepRma:{en:"Returns",he:"חזרות"},
+ howManyBoxes:{en:"How many boxes were delivered?",he:"כמה ארגזים נמסרו?"},
+ less:{en:"Less",he:"פחות"}, more:{en:"More",he:"יותר"},
+ photoDelivery:{en:"Photograph the package",he:"צלם את החבילה"}, receiptQ:{en:"Receipt photo (optional)",he:"צילום קבלה (לא חובה)"}, photoReceipt:{en:"Photograph the receipt",he:"צלם קבלה"},
+ custSign:{en:"Customer signature",he:"חתימת הלקוח"}, signer:{en:"Receiver name",he:"שם המקבל"}, clearSig:{en:"Clear",he:"נקה חתימה"},
+ notReceived:{en:"Customer did not take the delivery",he:"הלקוח לא קיבל את המסירה"},
+ reasons:{en:{absent:"Customer not there",refused:"Customer refused",address:"Wrong address",damaged:"Damaged goods"},he:{absent:"הלקוח לא נמצא",refused:"הלקוח סירב",address:"כתובת שגויה",damaged:"סחורה פגומה"}},
+ payments:{en:"Payments",he:"תשלומים"}, howPaid:{en:"How did the customer pay?",he:"איך הלקוח שילם?"},
+ due:{en:"Due",he:"לגבייה"}, collected:{en:"Collected",he:"נגבה"}, terms:{en:"Terms: {0}",he:"תנאי תשלום: {0}"},
+ addMore:{en:"Add another payment:",he:"הוסף עוד תשלום:"},
+ anyReturns:{en:"Anything coming back?",he:"יש סחורה שחוזרת?"},
+ returnsOpt:{en:"Optional. If there are no returns, tap \"Finish delivery\".",he:"לא חובה. אם אין חזרות, לחץ \"סיום מסירה\"."},
+ photoReturn:{en:"Photograph the return",he:"צלם חזרה"},
+ rmaNote:{en:"What's coming back and why (optional)",he:"מה חוזר ולמה (לא חובה)"},
+ offlineBar:{en:"No signal. Deliveries are saved on the phone and send by themselves later.",he:"אין קליטה. המסירות נשמרות בטלפון ונשלחות לבד אחר כך."},
+ queued:{en:"Saved on the phone, waiting for signal",he:"נשמר בטלפון, ממתין לקליטה"},
+ sendFailed:{en:"Couldn't send: {0}. Tap to try again.",he:"לא נשלח: {0}. לחץ לנסות שוב."},
+ savedOffline:{en:"Saved on the phone. It will send when there's signal.",he:"נשמר בטלפון. יישלח כשתהיה קליטה."},
+ sent:{en:"Delivery saved",he:"המסירה נשמרה"},
+ navigate:{en:"Navigate",he:"ניווט"},
+ prev:{en:"Back",he:"הקודם"}, next:{en:"Next",he:"הבא"}, finish:{en:"Finish delivery",he:"סיום מסירה"},
+ box0:{en:"0 boxes is not a delivery. If the customer didn't take it, tap below.",he:"0 ארגזים זו לא מסירה. אם הלקוח לא קיבל, לחץ למטה."},
+ boxShort:{en:"{0} boxes short. The delivery will be marked partial.",he:"חסרים {0} ארגזים. המסירה תסומן כחלקית."},
+ boxExtra:{en:"{0} boxes extra. The delivery will be marked partial.",he:"עודף של {0} ארגזים. המסירה תסומן כחלקית."},
+ paysLess:{en:"Customer pays less? Why:",he:"הלקוח משלם פחות? למה:"}, paysMore:{en:"Customer pays more? Why:",he:"הלקוח משלם יותר? למה:"},
+ diffs:{en:{later:"Will pay the rest later",discount:"Approved discount",dispute:"Disputes the goods",debt:"Previous balance",order:"Order mistake"},he:{later:"ישלים בהמשך",discount:"הנחה מאושרת",dispute:"מחלוקת על הסחורה",debt:"יתרה קודמת",order:"טעות בהזמנה"}},
+ full:{en:"Paid in full",he:"הסכום מלא"}, short:{en:"{0} missing",he:"חסר {0}"}, over:{en:"{0} extra",he:"עודף {0}"},
+ dupHere:{en:"Check {0} is already on this delivery.",he:"שיק {0} כבר רשום במסירה הזו."},
+ dupOther:{en:"Check {0} was already taken today at {1}.",he:"שיק {0} כבר נלקח היום אצל {1}."},
+ remove:{en:"Remove",he:"הסר"}, photographed:{en:"Photographed",he:"צולם"}, photoOf:{en:"Photograph the {0}",he:"צלם {0}"},
+ fCheckNum:{en:"Check no.",he:"מס' שיק"}, fBank:{en:"Bank",he:"בנק"}, fBranch:{en:"Branch",he:"סניף"}, fAccount:{en:"Account",he:"חשבון"}, fDrawer:{en:"Account holder (optional)",he:"בעל החשבון (לא חובה)"}, fDrawerId:{en:"ID / company no. (optional)",he:"ת.ז / ח.פ (לא חובה)"},
+ dueDate:{en:"Due date",he:"תאריך פירעון"},
+ undo:{en:"My mistake, reopen (up to 10 minutes after closing)",he:"טעיתי, לפתוח מחדש (עד 10 דקות מהסגירה)"},
+ stDone:{en:"Delivered",he:"נמסר"}, stFailed:{en:"Not delivered",he:"לא נמסר"}, stPartial:{en:"Partly delivered",he:"נמסר חלקית"},
+ doneAt:{en:"Delivered at {0}",he:"נמסר ב-{0}"}, doneOld:{en:"Marked done in the main system",he:"סומן כבוצע במערכת הראשית"},
+ tDelivery:{en:"Package",he:"חבילה"}, tReceipt:{en:"Receipt",he:"קבלה"}, tSignature:{en:"Signature",he:"חתימה"}, tReturns:{en:"Returns ({0})",he:"חזרות ({0})"},
+ signedBy:{en:"Received by",he:"קיבל"}, payment:{en:"Payment",he:"תשלום"}, ofTotal:{en:"of {0}",he:"מתוך {0}"},
+ noLink:{en:"Open the link you got on WhatsApp.",he:"פתח את הקישור שקיבלת בוואטסאפ."},
+ notFound:{en:"This link has no deliveries.",he:"אין מסירות בקישור הזה."}, notFoundSub:{en:"Check with the office that it's today's link.",he:"כדאי לבדוק עם המשרד שזה הקישור של היום."},
+ loadFail:{en:"Couldn't load the deliveries.",he:"לא הצלחנו לטעון את המסירות."}, retry:{en:"Try again",he:"נסה שוב"},
+ offlineCached:{en:"No signal: showing the list from the last time it loaded.",he:"אין קליטה: מוצגת הרשימה מהפעם האחרונה."},
+ pickPerson:{en:"Who is driving?",he:"מי הנהג?"},
+ sending:{en:"Saving…",he:"שומר…"},
+ comment:{en:"Note",he:"הערה"}, firstOrder:{en:"First order",he:"הזמנה ראשונה"},
+ call:{en:"Call",he:"חייג"}, needsSignal:{en:"Needs signal. Try again in a moment.",he:"צריך קליטה. נסה שוב עוד רגע."},
+};
+const qs=new URLSearchParams(location.search);
+let lang;
+try{lang=localStorage.getItem("lang")}catch(e){}
+if(lang!=="en"&&lang!=="he")lang=(navigator.language||"").startsWith("en")?"en":"he";
+const t=(k,...a)=>{let s=S[k][lang];return typeof s==="string"?s.replace(/\{(\d)\}/g,(_,i)=>a[i]):s};
+const esc=v=>String(v??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"})[c]);
+const fmt=n=>"₪"+Number(n||0).toLocaleString("en-US",{maximumFractionDigits:2});
+const boxes=n=>n===1?t("box1"):t("boxesN",n);
+const payLabel=m=>t(m);
+const hhmm=iso=>iso?new Date(iso).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"}):"";
+function applyLang(){document.documentElement.lang=lang;document.documentElement.dir=lang==="he"?"rtl":"ltr"}
+applyLang();
+
+/* ---------- storage on the phone (IndexedDB): drafts and the outbox ---------- */
+const DB=new Promise((ok,no)=>{const r=indexedDB.open("abc-driver",1);r.onupgradeneeded=()=>{r.result.createObjectStore("drafts");r.result.createObjectStore("outbox");r.result.createObjectStore("cache")};r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)});
+async function idb(store,mode,fn){const db=await DB;return new Promise((ok,no)=>{const tx=db.transaction(store,mode);const s=tx.objectStore(store);const r=fn(s);tx.oncomplete=()=>ok(r&&r.result);tx.onerror=()=>no(tx.error)})}
+const kv={get:(st,k)=>idb(st,"readonly",s=>s.get(k)),put:(st,k,v)=>idb(st,"readwrite",s=>s.put(v,k)),del:(st,k)=>idb(st,"readwrite",s=>s.delete(k)),
+  all:async st=>{const db=await DB;return new Promise((ok,no)=>{const out={};const tx=db.transaction(st,"readonly");const c=tx.objectStore(st).openCursor();c.onsuccess=()=>{const x=c.result;if(x){out[x.key]=x.value;x.continue()}};tx.oncomplete=()=>ok(out);tx.onerror=()=>no(tx.error)})}};
+
+/* ---------- server ---------- */
+async function api(path,body){
+  const r=await fetch(path,body?{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}:{cache:"no-store"});
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok){const e=new Error(j.error||("http_"+r.status));e.status=r.status;throw e}
+  return j}
+const isNet=e=>!e.status; // fetch threw: no signal (or the server is unreachable)
+
+/* ---------- state ---------- */
+const phone=document.getElementById("phone");
+const guid=(location.pathname.match(/\/d\/([0-9a-fA-F-]{36})/)||[])[1]||qs.get("g")||"";
+let L=null;          // {guid, person, date, tasks, day, results, writes}
+let order=[], drafts={}, outbox={}, accepted=false, closedAt=null, checksOk=[false,false,false];
+let open=null, draft=null, cachedView=false;
+const byId=id=>L.tasks.find(x=>x.id===id);
+const resultOf=id=>outbox[id]?{...outbox[id].summary,queued:true,failed:outbox[id].error||null}:L.results[id]||null;
+const isDone=d=>!!resultOf(d.id)||d.completed;
+
+async function load(){
+  if(!guid){phone.innerHTML=`<div class="msg"><b>${t("noLink")}</b></div>`;return}
+  [drafts,outbox]=await Promise.all([kv.all("drafts"),kv.all("outbox")]);
+  try{
+    const j=await api("/api/list?guid="+guid);
+    if(j.master){renderPeople(j.people);return}
+    L=j;cachedView=false;kv.put("cache",guid,j).catch(()=>{});
+  }catch(e){
+    if(e.status===404||e.status===400){phone.innerHTML=`<div class="msg"><b>${t("notFound")}</b><span class="sub">${t("notFoundSub")}</span></div>`;return}
+    L=await kv.get("cache",guid).catch(()=>null);
+    if(!L){phone.innerHTML=`<div class="msg"><b>${t("loadFail")}</b><button class="btn" id="retry" style="width:auto;padding-inline:28px">${t("retry")}</button></div>`;phone.querySelector("#retry").onclick=load;return}
+    cachedView=true;
+  }
+  L.results=L.results||{};
+  const ids=L.tasks.map(x=>x.id);
+  const saved=(L.day&&L.day.order||[]).filter(id=>ids.includes(id));
+  let local=null;try{local=JSON.parse(localStorage.getItem("order:"+guid)||"null")}catch(e){}
+  order=[...((local||saved).filter(id=>ids.includes(id))),...ids.filter(id=>!(local||saved).includes(id))];
+  accepted=!!(L.day&&L.day.accepted_at)||localStorage.getItem("accepted:"+guid)==="1";
+  closedAt=L.day&&L.day.closed_at||null;
+  if(open&&byId(open)&&!isDone(byId(open)))renderStop();else{open=null;renderList()}
+  flush();
+}
+
+/* ---------- master link: pick the driver ---------- */
+function renderPeople(people){
+  phone.innerHTML=`<div class="ph-head"><div class="ph-top"><div class="t">${t("pickPerson")}</div>${langs()}</div></div><div class="ph-body people">${people.map(p=>`<a class="btn quiet" style="text-decoration:none;text-align:center" href="/d/${esc(p.guid)}">${esc(p.person)} · ${p.count}</a>`).join("")}</div>`;bindLangs()}
+
+/* ---------- header bits ---------- */
+function langs(){return `<div class="langs" aria-label="Language"><button data-lang="he" aria-pressed="${lang==="he"}">עב</button><button data-lang="en" aria-pressed="${lang==="en"}">EN</button></div>`}
+function bindLangs(){phone.querySelectorAll("[data-lang]").forEach(b=>b.onclick=()=>{lang=b.dataset.lang;try{localStorage.setItem("lang",lang)}catch(e){}applyLang();rerender()})}
+function rerender(){if(!L){load();return}if(open){const d=byId(open);isDone(d)?renderDone(d):renderStop()}else renderList()}
+function offBar(){return (!navigator.onLine||cachedView)?`<div class="offline" role="status">${navigator.onLine?t("offlineCached"):t("offlineBar")}</div>`:""}
+function tally(){
+  const done=L.tasks.map(d=>({d,r:resultOf(d.id)})).filter(x=>x.r);
+  const lines=done.filter(x=>x.r.status==="delivered").flatMap(x=>(x.r.payments||[]).map(p=>({...p,cust:x.d.company})));
+  const cash=lines.filter(l=>l.type==="cash").reduce((a,l)=>a+(+l.amount||0),0);
+  const failed=done.filter(x=>x.r.status==="not_delivered");
+  const dl=done.filter(x=>x.r.status==="delivered");
+  const partial=dl.filter(x=>x.r.boxes_delivered!=null&&x.r.boxes_delivered<x.d.boxes);
+  return {
+    checkList:lines.filter(l=>l.type==="check").map(l=>({cust:l.cust,num:l.checkNum||""})),
+    cashList:dl.map(x=>({cust:x.d.company,amt:(x.r.payments||[]).filter(l=>l.type==="cash").reduce((a,l)=>a+(+l.amount||0),0)})).filter(x=>x.amt>0),
+    returns:[...failed.map(x=>({cust:x.d.company,n:x.d.boxes})),...partial.map(x=>({cust:x.d.company,n:x.d.boxes-x.r.boxes_delivered}))],
+    cash,checks:lines.filter(l=>l.type==="check").length,credit:lines.filter(l=>l.type==="credit").length,
+    delivered:dl.length+L.tasks.filter(d=>d.completed&&!resultOf(d.id)).length,partial:partial.length,failed:failed.length,
+    open:L.tasks.filter(d=>!isDone(d)).length,queued:Object.keys(outbox).length,
+    boxesBack:failed.reduce((a,x)=>a+x.d.boxes,0)+partial.reduce((a,x)=>a+x.d.boxes-x.r.boxes_delivered,0)}}
+function tallyBar(){const x=tally();return `<div class="tally"><div><b>${x.checks}</b><span>${t("checks")}</span></div><div><b>${fmt(x.cash)}</b><span>${t("cash")}</span></div><div><b>${x.delivered}/${L.tasks.length}</b><span>${t("delivered")}</span></div></div>`}
+
+/* ---------- start of day ---------- */
+function renderTerms(){
+  const all=checksOk.every(Boolean);
+  phone.innerHTML=`<div class="ph-head"><div class="ph-top"><div class="t">${t("hello",esc(L.person))}</div>${langs()}</div><div class="m">${t("waiting",esc(L.date),L.tasks.length)}</div></div>${offBar()}
+  <div class="ph-body"><p style="margin:0;font-weight:700">${t("beforeStart")}</p>
+  ${t("rules").map((r,i)=>`<label class="rule ${checksOk[i]?"ok":""}" for="rule-${i}"><input type="checkbox" id="rule-${i}" data-i="${i}" ${checksOk[i]?"checked":""}><span><b>${r[0]}:</b> ${r[1]}</span></label>`).join("")}
+  <p class="hint" style="color:var(--bad);text-align:start">${t("notAccepted")}</p>
+  <button class="btn" id="accept" ${all?"":"disabled"}>${t("accept")}</button></div>`;
+  bindLangs();
+  phone.querySelectorAll("input[data-i]").forEach(c=>c.onchange=()=>{checksOk[+c.dataset.i]=c.checked;keepScroll(renderTerms)});
+  phone.querySelector("#accept").onclick=()=>{accepted=true;try{localStorage.setItem("accepted:"+guid,"1")}catch(e){}api("/api/day",{guid,action:"accept"}).catch(()=>{});renderList()};
+}
+
+/* ---------- the list ---------- */
+function renderList(){
+  if(!accepted){renderTerms();return}
+  const done=L.tasks.filter(isDone).length;
+  phone.innerHTML=`<div class="ph-head"><div class="ph-top"><div class="t">${t("hello",esc(L.person))}</div>${langs()}</div><div class="m">${t("listMeta",esc(L.date),L.tasks.length,done)}</div><div class="prog"><i style="width:${L.tasks.length?done/L.tasks.length*100:0}%"></i></div></div>${offBar()}${tallyBar()}
+  <div class="ph-body"><div id="list" style="display:flex;flex-direction:column;gap:10px"></div><p class="hint">${t("dragHint")}</p><button class="btn ${done===L.tasks.length?"":"quiet"}" id="eod">${done===L.tasks.length?t("allDone"):t("interim")}</button></div>`;
+  bindLangs();
+  phone.querySelector("#eod").onclick=renderSummary;
+  const list=phone.querySelector("#list");
+  order.forEach((id,i)=>{const d=byId(id);const r=resultOf(id);const done=isDone(d);const fail=r&&r.status==="not_delivered";
+    const el=document.createElement("div");el.className="stop"+(done?(fail?" fail":" done"):"");el.dataset.id=id;el.tabIndex=0;el.setAttribute("role","button");
+    const note=r&&r.failed?`<span class="q-wait" style="color:var(--bad)">${t("sendFailed",esc(r.failed))}</span>`:r&&r.queued?`<span class="q-wait">${t("queued")}</span>`:"";
+    el.innerHTML=`<span class="h" aria-label="drag">⋮⋮</span><span class="n">${done?(fail?"✕":"✓"):i+1}</span><span class="c"><b>${esc(d.company)}${d.firstOrder?` <span class="tag new">${t("firstOrder")}</span>`:""}</b><span>${esc([d.address,d.city].filter(Boolean).join(", "))} · ${boxes(d.boxes)}</span>${note}</span><span class="amt">${d.due?fmt(d.due):"—"}<small>${esc(d.terms)}</small></span>`;
+    el.addEventListener("click",e=>{if(e.target.classList.contains("h"))return;if(r&&r.failed){flush(true);return}openStop(id)});
+    el.addEventListener("keydown",e=>{if(e.key==="Enter")openStop(id)});
+    list.appendChild(el)});
+  if(window.Sortable)Sortable.create(list,{handle:".h",filter:".done,.fail",animation:150,ghostClass:"ghost",onEnd:()=>{order=[...list.children].map(c=>+c.dataset.id);try{localStorage.setItem("order:"+guid,JSON.stringify(order))}catch(e){}api("/api/day",{guid,action:"order",ids:order}).catch(()=>{});renderList()}});
+}
+
+/* ---------- day summary ---------- */
+function renderSummary(){const x=tally();const all=x.open===0;
+  phone.innerHTML=`<div class="ph-head"><div class="ph-top"><button class="back" id="back">${t("back")}</button>${langs()}</div><div class="t">${all?t("daySummary"):t("interim")}</div><div class="m">${esc(L.person)} · ${esc(L.date)}</div></div>${offBar()}${tallyBar()}
+  <div class="ph-body">
+    <div class="step"><div class="step-h">${t("envChecks")}</div><p>${t("writeOn")}</p><p class="big">${t("envChecksLine",esc(L.person),x.checks)}</p><p class="sub">${t("envChecksNote")}</p>${x.checkList.length?`<ul>${x.checkList.map(c=>`<li>${esc(c.cust)}: ${t("check")} ${esc(c.num)}</li>`).join("")}</ul>`:""}</div>
+    <div class="step"><div class="step-h">${t("envCash")}</div><p>${t("writeOn")}</p><p class="big">${t("cashLine",fmt(x.cash))}</p><p class="sub">${t("cashNote")}</p>
+      ${x.cashList.length?`<ul>${x.cashList.map(c=>`<li>${esc(c.cust)}: ${fmt(c.amt)}</li>`).join("")}</ul>`:`<p class="sub">${t("noCash")}</p>`}</div>
+    <div class="step"><div class="step-h">${t("returnsH")}</div>${x.returns.length?`<ul>${x.returns.map(r=>`<li>${esc(r.cust)}: ${boxes(r.n)}</li>`).join("")}</ul><p class="sub">${t("returnsNote")}</p>`:`<p class="sub">${t("noReturns")}</p>`}</div>
+    <dl class="info"><dt>${t("toDeposit")}</dt><dd class="amt" style="text-align:start">${fmt(x.cash)}</dd><dt>${t("checks")}</dt><dd>${x.checks}</dd><dt>${t("credit")}</dt><dd>${t("creditN",x.credit)}</dd>
+      <dt>${t("delivered")}</dt><dd>${x.partial?t("deliveredOf",x.delivered,x.partial):x.delivered}</dd><dt>${t("notDelivered")}</dt><dd>${x.failed}</dd><dt>${t("boxesBack")}</dt><dd>${x.boxesBack}</dd></dl>
+    ${all?"":`<p class="sub">${t("stillOpen",x.open)}</p>`}${all&&x.queued?`<p class="sub">${t("waitSend",x.queued)}</p>`:""}
+    <p class="err" id="close-err" hidden></p>
+    <button class="btn" id="close-day" ${all&&!x.queued&&!closedAt?"":"disabled"}>${closedAt?t("dayClosed"):t("closeDay")}</button></div>`;
+  bindLangs();
+  phone.querySelector("#back").onclick=renderList;
+  phone.querySelector("#close-day").onclick=async()=>{try{const j=await api("/api/day",{guid,action:"close"});closedAt=j.at;renderSummary()}catch(e){const p=phone.querySelector("#close-err");p.hidden=false;p.textContent=isNet(e)?t("needsSignal"):e.message}};
+}
+
+/* ---------- one delivery: the wizard ---------- */
+const DRAFT=d=>({step:0,boxes:d.boxes,failOpen:false,photos:[],receipt:[],sig:null,signer:"",lines:[],rmaPhotos:[],rmaNote:"",diffReason:null});
+function openStop(id){open=id;const d=byId(id);
+  if(isDone(d)){renderDone(d);return}
+  draft=drafts[id]=drafts[id]||DRAFT(d);renderStop()}
+let saveT=null;
+function saveDraft(){clearTimeout(saveT);const id=open,d=draft;saveT=setTimeout(()=>kv.put("drafts",id,d).catch(()=>{}),300)}
+function wizSteps(d){return ["box",...(d.due>0?["pay"]:[]),"rma"]}
+const paidSum=ls=>ls.reduce((a,l)=>a+(+l.amount||0),0);
+const lineOk=l=>+l.amount>0&&(l.type==="credit"||!!l.photo)&&(l.type!=="check"||(l.checkNum&&l.bank&&l.branch&&l.account&&l.dueDate));
+function payValid(d){if(!draft.lines.length||!draft.lines.every(lineOk))return false;return paidSum(draft.lines)===d.due||!!draft.diffReason}
+function stepOk(d,k){if(k==="box")return draft.boxes>0&&draft.photos.length>0&&!!draft.sig&&draft.signer.trim().length>0;if(k==="pay")return payValid(d);return true}
+function remText(d){const r=d.due-paidSum(draft.lines);return r===0?t("full"):r>0?t("short",fmt(r)):t("over",fmt(-r))}
+function boxWarn(d){if(draft.boxes===0)return t("box0");if(draft.boxes<d.boxes)return t("boxShort",d.boxes-draft.boxes);if(draft.boxes>d.boxes)return t("boxExtra",draft.boxes-d.boxes);return ""}
+function diffBox(d){const r=d.due-paidSum(draft.lines);if(!draft.lines.length||r===0)return "";
+  return `<div class="q" style="font-size:1rem">${r>0?t("paysLess"):t("paysMore")}</div><div class="row">${Object.entries(t("diffs")).map(([k,lab])=>`<button class="chip" data-diff="${k}" aria-pressed="${draft.diffReason===k}">${lab}</button>`).join("")}</div>`}
+function lineWarns(d,l,i){const w=[];if(l.type==="check"&&l.checkNum){
+  if(draft.lines.some((o,j)=>j!==i&&o.type==="check"&&o.checkNum===l.checkNum&&o.account===l.account))w.push(t("dupHere",esc(l.checkNum)));
+  const other=L.tasks.find(x=>x.id!==d.id&&(resultOf(x.id)?.payments||[]).some(o=>o.type==="check"&&o.checkNum===l.checkNum));
+  if(other)w.push(t("dupOther",esc(l.checkNum),esc(other.company)))}
+  return w.map(x=>`<div>${x}</div>`).join("")}
+function photoBtn(id,label,key){return `<div class="bigfile"><label for="${id}" class="bigbtn">${label}</label><input id="${id}" data-file="${key}" type="file" accept="image/*" capture="environment" multiple></div><div class="thumbs">${draft[key].map((s,i)=>`<span class="th"><img src="${s}" alt=""><button class="thx" data-rm="${key}:${i}" aria-label="${t("remove")}">×</button></span>`).join("")}</div>`}
+function lineCard(d,l,i){const need=l.type!=="credit";
+  const f=(k,lb,type="text",mode="numeric")=>`<label class="fld">${t(lb)}<input type="${type}" ${type==="text"?`inputmode="${mode}"`:""} data-l="${i}" data-f="${k}" value="${esc(l[k]||"")}"></label>`;
+  return `<div class="pline ${lineOk(l)?"ok":""}"><div class="pl-h"><b>${payLabel(l.type)}</b><label class="pl-amt">₪<input type="number" inputmode="decimal" data-l="${i}" data-f="amount" value="${l.amount}"></label><button class="small" data-del="${i}">${t("remove")}</button></div>
+    ${need?(l.photo?`<div class="pl-ph"><img src="${l.photo}" alt=""><span class="sub">${t("photographed")}</span><button class="small" data-lrm="${i}">${t("remove")}</button></div>`
+      :`<div class="bigfile"><label for="lp-${i}" class="bigbtn" style="padding:14px">${t("photoOf",payLabel(l.type))}</label><input id="lp-${i}" data-lphoto="${i}" type="file" accept="image/*" capture="environment"></div>`):""}
+    ${l.type==="check"?`<div class="grid2">${f("checkNum","fCheckNum")}${f("bank","fBank")}${f("branch","fBranch")}${f("account","fAccount")}${f("holder","fDrawer","text","text")}${f("holderId","fDrawerId")}</div>${f("dueDate","dueDate","date")}`:""}
+    <div class="warn" id="lw-${i}">${lineWarns(d,l,i)}</div></div>`}
+
+function renderStop(){const d=byId(open);const steps=wizSteps(d);if(draft.step>=steps.length)draft.step=steps.length-1;const k=steps[draft.step];const last=draft.step===steps.length-1;
+  const titles={box:t("stepBox"),pay:t("stepPay"),rma:t("stepRma")};
+  let body="";
+  if(k==="box")body=`<div class="q">${t("howManyBoxes")}</div>
+    <div class="counter"><button class="cbtn" id="bx-minus" aria-label="${t("less")}">−</button><b id="bx-val">${draft.boxes}</b><button class="cbtn" id="bx-plus" aria-label="${t("more")}">+</button></div>
+    <p class="warn" id="w-box">${boxWarn(d)}</p>${photoBtn("f-photo",t("photoDelivery"),"photos")}
+    <div class="q" style="font-size:1rem">${t("receiptQ")}</div>${photoBtn("f-receipt",t("photoReceipt"),"receipt")}
+    <div class="q" style="font-size:1.1rem">${t("custSign")}</div><canvas class="sig" id="sig"></canvas>
+    <div class="row" style="justify-content:space-between;align-items:end"><label class="fld" style="flex:1" for="signer">${t("signer")}<input type="text" id="signer" autocomplete="off" value="${esc(draft.signer)}"></label><button class="small" id="clr">${t("clearSig")}</button></div>
+    <button class="small" id="fail" style="align-self:center">${t("notReceived")}</button>
+    ${draft.failOpen?`<div class="row" style="justify-content:center">${Object.entries(t("reasons")).map(([key,lab])=>`<button class="chip" data-reason="${key}">${lab}</button>`).join("")}</div>`:""}`;
+  if(k==="pay"){const paid=paidSum(draft.lines),rem=d.due-paid;
+    body=`<div class="q">${draft.lines.length?t("payments"):t("howPaid")}</div>
+    <div class="paysum"><span>${t("due")} <b>${fmt(d.due)}</b></span><span>${t("collected")} <b id="paid-sum">${fmt(paid)}</b></span><span id="rem" class="${rem===0?"ok":"warn"}">${remText(d)}</span></div>
+    ${d.terms?`<p class="sub" style="text-align:center">${t("terms",esc(d.terms))}</p>`:""}
+    ${draft.lines.map((l,i)=>lineCard(d,l,i)).join("")}
+    <div id="diffbox">${diffBox(d)}</div>
+    ${draft.lines.length?`<div class="sub" style="text-align:center">${t("addMore")}</div>`:""}
+    <div class="paygrid">${["check","cash","credit"].map(m=>`<button class="paybtn" data-add="${m}">${draft.lines.length?"+ ":""}${payLabel(m)}</button>`).join("")}</div>`}
+  if(k==="rma")body=`<div class="q">${t("anyReturns")}</div><p class="sub">${t("returnsOpt")}</p>${photoBtn("f-rma",t("photoReturn"),"rmaPhotos")}<label class="fld" for="rma-note">${t("rmaNote")}<textarea id="rma-note" rows="3">${esc(draft.rmaNote)}</textarea></label>`;
+  const addr=[d.address,d.city].filter(Boolean).join(", ");
+  phone.innerHTML=`<div class="ph-head"><div class="ph-top"><button class="back" id="back">${t("back")}</button>${langs()}</div><div class="t">${esc(d.company)}</div>
+    <div class="m">${esc(addr)}${addr?` · <a href="https://waze.com/ul?q=${encodeURIComponent(addr)}&navigate=yes" target="_blank" rel="noopener">${t("navigate")}</a>`:""}${d.phone?` · <a class="ltr" style="white-space:nowrap" href="tel:${esc(d.phone)}">${esc(d.phone)}</a>`:""}</div>
+    <div class="m">${d.due?fmt(d.due):t("prepaid")}${d.terms?" · "+esc(d.terms):""} · ${boxes(d.boxes)}</div>
+    ${d.comment?`<div class="m">${t("comment")}: ${esc(d.comment)}</div>`:""}
+    <div class="dots">${steps.map((s,i)=>`<span class="${i<draft.step?"done":i===draft.step?"cur":""}">${titles[s]}</span>`).join("")}</div></div>${offBar()}
+    <div class="ph-body wiz">${body}</div>
+    <div class="wizfoot">${draft.step>0?`<button class="btn sec2" id="prev">${t("prev")}</button>`:""}<button class="btn" id="next" ${stepOk(d,k)?"":"disabled"}>${last?t("finish"):t("next")}</button></div>`;
+  bindLangs();
+  const $=q=>phone.querySelector(q);
+  $("#back").onclick=()=>{open=null;renderList()};
+  if($("#prev"))$("#prev").onclick=()=>{draft.step--;saveDraft();renderStop()};
+  $("#next").onclick=()=>{if(last)finish(d);else{draft.step++;saveDraft();renderStop();window.scrollTo(0,0)}};
+  phone.querySelectorAll("[data-file]").forEach(inp=>inp.onchange=async()=>{const key=inp.dataset.file;for(const f of inp.files)draft[key].push(await shrink(f));saveDraft();keepScroll(renderStop)});
+  phone.querySelectorAll("[data-rm]").forEach(b=>b.onclick=()=>{const [k2,i]=b.dataset.rm.split(":");draft[k2].splice(+i,1);saveDraft();keepScroll(renderStop)});
+  if(k==="box"){$("#bx-minus").onclick=()=>{draft.boxes=Math.max(0,draft.boxes-1);saveDraft();keepScroll(renderStop)};$("#bx-plus").onclick=()=>{draft.boxes++;saveDraft();keepScroll(renderStop)};
+    $("#fail").onclick=()=>{draft.failOpen=!draft.failOpen;keepScroll(renderStop)};
+    phone.querySelectorAll("[data-reason]").forEach(b=>b.onclick=()=>finishFailed(d,b.dataset.reason));
+    initSig();const sg=$("#signer");sg.oninput=()=>{draft.signer=sg.value;saveDraft();refreshNext()}}
+  if(k==="pay"){
+    phone.querySelectorAll("[data-add]").forEach(b=>b.onclick=()=>{const rem=Math.max(0,d.due-paidSum(draft.lines));draft.lines.push({type:b.dataset.add,amount:rem,photo:null});saveDraft();renderStop()});
+    phone.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{draft.lines.splice(+b.dataset.del,1);saveDraft();renderStop()});
+    phone.querySelectorAll("[data-lrm]").forEach(b=>b.onclick=()=>{draft.lines[+b.dataset.lrm].photo=null;saveDraft();keepScroll(renderStop)});
+    phone.querySelectorAll("[data-lphoto]").forEach(inp=>inp.onchange=async()=>{if(!inp.files[0])return;draft.lines[+inp.dataset.lphoto].photo=await shrink(inp.files[0]);saveDraft();keepScroll(renderStop)});
+    phone.querySelectorAll("[data-diff]").forEach(b=>b.onclick=()=>{draft.diffReason=b.dataset.diff;saveDraft();keepScroll(renderStop)});
+    phone.querySelectorAll("[data-l]").forEach(inp=>inp.oninput=()=>{const i=+inp.dataset.l,f=inp.dataset.f;draft.lines[i][f]=f==="amount"?(inp.value===""?"":+inp.value):inp.value.trim();
+      if(f==="amount"&&paidSum(draft.lines)===d.due)draft.diffReason=null;saveDraft();
+      const rem=d.due-paidSum(draft.lines);$("#paid-sum").textContent=fmt(paidSum(draft.lines));const r=$("#rem");r.textContent=remText(d);r.className=rem===0?"ok":"warn";
+      $("#diffbox").innerHTML=diffBox(d);phone.querySelectorAll("[data-diff]").forEach(b=>b.onclick=()=>{draft.diffReason=b.dataset.diff;saveDraft();keepScroll(renderStop)});
+      inp.closest(".pline").classList.toggle("ok",lineOk(draft.lines[i]));const w=$("#lw-"+i);if(w)w.innerHTML=lineWarns(d,draft.lines[i],i);refreshNext()})}
+  if(k==="rma"){$("#rma-note").oninput=e=>{draft.rmaNote=e.target.value;saveDraft()}}
+}
+function refreshNext(){const d=byId(open);const k=wizSteps(d)[draft.step];const n=phone.querySelector("#next");if(n)n.disabled=!stepOk(d,k)}
+function keepScroll(fn){const y=window.scrollY;fn();window.scrollTo(0,y)}
+function initSig(){const c=phone.querySelector("#sig");const r=c.getBoundingClientRect(),dpr=window.devicePixelRatio||1;c.width=r.width*dpr;c.height=r.height*dpr;const x=c.getContext("2d");x.scale(dpr,dpr);x.lineWidth=2.5;x.lineCap="round";x.strokeStyle="#17211d";
+  if(draft.sig){const im=new Image();im.onload=()=>x.drawImage(im,0,0,r.width,r.height);im.src=draft.sig}
+  let down=false;const p=e=>{const b=c.getBoundingClientRect();return[e.clientX-b.left,e.clientY-b.top]};
+  c.onpointerdown=e=>{down=true;c.setPointerCapture(e.pointerId);x.beginPath();x.moveTo(...p(e))};
+  c.onpointermove=e=>{if(!down)return;x.lineTo(...p(e));x.stroke()};
+  c.onpointerup=()=>{if(!down)return;down=false;draft.sig=c.toDataURL("image/png");saveDraft();refreshNext()};
+  phone.querySelector("#clr").onclick=()=>{x.clearRect(0,0,c.width,c.height);draft.sig=null;saveDraft();refreshNext()}}
+
+// Photos are shrunk on the phone (longest side 1600px, JPEG) so they send quickly on a weak signal
+function shrink(file){return new Promise(ok=>{const url=URL.createObjectURL(file);const im=new Image();
+  im.onload=()=>{const m=1600,s=Math.min(1,m/Math.max(im.width,im.height));const c=document.createElement("canvas");c.width=Math.round(im.width*s);c.height=Math.round(im.height*s);
+    c.getContext("2d").drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(url);ok(c.toDataURL("image/jpeg",.8))};
+  im.onerror=()=>{URL.revokeObjectURL(url);const r=new FileReader();r.onload=()=>ok(r.result);r.readAsDataURL(file)};im.src=url})}
+
+/* ---------- finishing: into the outbox first, then sent ---------- */
+function summaryOf(dr,status,reason){return {status,reason:reason||null,finished_at:new Date().toISOString(),receiver_name:dr.signer,boxes_delivered:status==="delivered"?dr.boxes:0,
+  amount_paid:paidSum(dr.lines),payments:status==="delivered"?dr.lines.map(l=>({type:l.type,amount:+l.amount||0,checkNum:l.checkNum||""})):[]}}
+async function enqueue(d,job){outbox[d.id]=job;await kv.put("outbox",d.id,job);delete drafts[d.id];await kv.del("drafts",d.id);open=null;renderList();toast(navigator.onLine?t("sending"):t("savedOffline"),!navigator.onLine);flush()}
+function finish(d){enqueue(d,{id:d.id,status:"delivered",draft:JSON.parse(JSON.stringify(draft)),summary:summaryOf(draft,"delivered"),up:{}})}
+function finishFailed(d,reason){enqueue(d,{id:d.id,status:"not_delivered",reason,draft:JSON.parse(JSON.stringify(draft)),summary:summaryOf(draft,"not_delivered",reason),up:{}})}
+function toast(msg,warn){const el=document.createElement("div");el.className="toast";el.textContent=msg;if(warn)el.style.background="var(--signal)";const b=phone.querySelector(".ph-body");if(b){b.prepend(el);setTimeout(()=>el.remove(),2600)}}
+
+let flushing=false;
+async function flush(force){
+  if(flushing||!Object.keys(outbox).length)return;
+  if(!navigator.onLine&&!force)return;
+  flushing=true;let changed=false;
+  for(const id of Object.keys(outbox)){const job=outbox[id];
+    try{
+      // Upload each photo once; the path is remembered so a retry doesn't upload it again
+      const up=async(key,data,kind)=>{if(!data)return null;if(!job.up[key]){job.up[key]=(await api("/api/photo",{guid,id:job.id,kind,data})).path;await kv.put("outbox",id,job)}return job.up[key]};
+      const dr=job.draft;let result;
+      if(job.status==="delivered"){
+        const packages=[],receipts=[],rma=[];
+        for(const [i,p] of dr.photos.entries())packages.push(await up("p"+i,p,"package"));
+        for(const [i,p] of dr.receipt.entries())receipts.push(await up("r"+i,p,"receipt"));
+        for(const [i,p] of dr.rmaPhotos.entries())rma.push(await up("m"+i,p,"rma"));
+        const signature=await up("sig",dr.sig,"signature");
+        const payments=[];for(const [i,l] of dr.lines.entries())payments.push({...l,photo:await up("l"+i,l.photo,l.type==="check"?"check":"cash")});
+        result={status:"delivered",boxes:dr.boxes,receiver:dr.signer,signature,packages,receipts,payments,diffReason:dr.diffReason,rma,rmaNote:dr.rmaNote};
+      }else result={status:"not_delivered",reason:job.reason};
+      const j=await api("/api/finish",{guid,id:job.id,result});
+      L.results[job.id]={...job.summary,finished_at:j.finished_at};
+      kv.put("drafts","sent:"+job.id,job.draft).catch(()=>{}); // kept so "reopen" brings the photos back
+      delete outbox[id];await kv.del("outbox",id);changed=true;
+    }catch(e){
+      if(isNet(e))break;               // no signal: try again later
+      job.error=e.message;outbox[id]=job;await kv.put("outbox",id,job).catch(()=>{});changed=true;
+    }}
+  flushing=false;
+  if(changed){kv.put("cache",guid,L).catch(()=>{});if(!open)renderList();else if(isDone(byId(open)))renderDone(byId(open))}
+}
+window.addEventListener("online",()=>{rerender();flush()});
+window.addEventListener("offline",rerender);
+setInterval(()=>flush(),30000);
+
+/* ---------- a finished delivery ---------- */
+async function renderDone(d){open=d.id;const r=resultOf(d.id);
+  const canUndo=r&&r.finished_at&&Date.now()-new Date(r.finished_at).getTime()<10*60*1000&&!r.failed;
+  const part=r&&r.status==="delivered"&&r.boxes_delivered<d.boxes;
+  const head=!r?`<span class="st completed">${t("doneOld")}</span>`:r.status==="delivered"?`<span class="st ${part?"partial":"completed"}">${part?t("stPartial")+" · "+hhmm(r.finished_at):t("doneAt",hhmm(r.finished_at))}</span>`:`<span class="st failed">${t("stFailed")} · ${t("reasons")[r.reason]||""}</span>`;
+  phone.innerHTML=`<div class="ph-head"><div class="ph-top"><button class="back" id="back">${t("back")}</button>${langs()}</div><div class="t">${esc(d.company)}</div><div class="m">${esc([d.address,d.city].filter(Boolean).join(", "))}</div></div>${offBar()}
+  <div class="ph-body"><div>${head}</div>${r&&r.queued?`<p class="q-wait">${r.failed?t("sendFailed",esc(r.failed)):t("queued")}</p>`:""}<div id="detail"></div>${canUndo?`<button class="btn sec" id="undo">${t("undo")}</button>`:""}</div>`;
+  bindLangs();
+  phone.querySelector("#back").onclick=()=>{open=null;renderList()};
+  if(canUndo)phone.querySelector("#undo").onclick=()=>undo(d);
+  const det=phone.querySelector("#detail");
+  if(r&&r.queued){det.innerHTML=detailHTML(d,{...r,package_urls:outbox[d.id].draft.photos,receipt_urls:outbox[d.id].draft.receipt,signature_url:outbox[d.id].draft.sig,rma_urls:outbox[d.id].draft.rmaPhotos,rma_note:outbox[d.id].draft.rmaNote,payments:outbox[d.id].draft.lines.map(l=>({...l,photo_url:l.photo}))})}
+  else if(r){try{const full=await api(`/api/result?guid=${guid}&id=${d.id}`);if(open===d.id)det.innerHTML=detailHTML(d,full)}catch(e){det.innerHTML=detailHTML(d,r)}}
+}
+function detailHTML(d,r){if(r.status!=="delivered")return "";
+  const tile=(src,l,bg)=>src?`<a class="tile" href="${src}" target="_blank" rel="noopener"><img src="${src}" alt="" style="${bg||""}"><span>${l}</span></a>`:"";
+  const ls=r.payments||[];
+  return `<div class="tiles" style="margin:10px 0">${tile((r.package_urls||[])[0],t("tDelivery"))}${tile((r.receipt_urls||[])[0],t("tReceipt"))}${tile(r.signature_url,t("tSignature"),"background:#fff;object-fit:contain")}${ls.filter(l=>l.photo_url).map(l=>tile(l.photo_url,payLabel(l.type))).join("")}${(r.rma_urls||[]).length?tile(r.rma_urls[0],t("tReturns",r.rma_urls.length)):""}</div>
+  <dl class="info"><dt>${t("signedBy")}</dt><dd>${esc(r.receiver_name)}</dd>${ls.length?`<dt>${t("payment")}</dt><dd><b>${fmt(paidSum(ls))}</b>${paidSum(ls)!==d.due?` <span style="color:var(--signal)">(${t("ofTotal",fmt(d.due))})</span>`:""}</dd>`:""}
+  ${ls.map(l=>`<dt>${payLabel(l.type)}</dt><dd>${l.type==="check"?`<span class="ltr">${esc(l.checkNum)} · ${esc(l.bank)}/${esc(l.branch)}/${esc(l.account)}</span> · ${esc(l.dueDate||"")} · `:""}${fmt(l.amount)}</dd>`).join("")}
+  ${r.rma_note?`<dt>${t("stepRma")}</dt><dd>${esc(r.rma_note)}</dd>`:""}</dl>`}
+async function undo(d){
+  if(outbox[d.id]){const job=outbox[d.id];delete outbox[d.id];await kv.del("outbox",d.id);drafts[d.id]={...job.draft,failOpen:false,step:0};await kv.put("drafts",d.id,drafts[d.id]);openStop(d.id);return}
+  try{await api("/api/undo",{guid,id:d.id});delete L.results[d.id];const kept=await kv.get("drafts","sent:"+d.id).catch(()=>null);drafts[d.id]=kept?{...kept,failOpen:false,step:0}:DRAFT(d);await kv.put("drafts",d.id,drafts[d.id]);openStop(d.id)}
+  catch(e){toast(isNet(e)?t("needsSignal"):e.message,true)}}
+
+load();
+})();
+</script>
