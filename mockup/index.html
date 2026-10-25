@@ -27,7 +27,15 @@ button:focus-visible,input:focus-visible,a:focus-visible,[role=button]:focus-vis
 .seg button[aria-pressed="true"],.seg button[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}
 .demo{display:flex;gap:8px;align-items:center;padding:6px 16px;font-size:.85rem;color:var(--muted);background:var(--sunk);border-bottom:1px solid var(--line)}
 .demo input{width:18px;height:18px;accent-color:var(--accent);flex:none}
+.demo{flex-wrap:wrap;column-gap:18px}
 .demo label{display:flex;gap:8px;align-items:center;cursor:pointer}
+.offline{background:#5b4a1f;color:#fff;padding:8px 16px;font-size:.88rem;font-weight:600}
+.q-wait{color:var(--signal);font-weight:600;font-size:.8rem}
+.th{position:relative;display:inline-block}
+.thx{position:absolute;top:-10px;inset-inline-end:-10px;width:32px;height:32px;border-radius:50%;border:2px solid #fff;background:var(--bad);color:#fff;font-weight:700;font-size:1rem;cursor:pointer;line-height:1}
+textarea{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);font:inherit;font-size:16px;resize:vertical}
+.tag{display:inline-block;font-size:.72rem;font-weight:700;border-radius:99px;padding:1px 8px;margin-inline-start:6px;vertical-align:1px}
+.tag.old{background:var(--sunk);color:var(--muted)} .tag.new{background:var(--accent);color:var(--accent-ink)}
 
 /* ---------- views ---------- */
 .stage{display:flex;flex-direction:column;gap:16px}
@@ -196,7 +204,7 @@ input[type=text],input[type=number],input[type=date]{width:100%;padding:10px;bor
     <button id="lang-he" aria-pressed="false">עב</button>
   </div>
 </div>
-<div class="demo"><label for="preview"><input type="checkbox" id="preview" checked><span id="demo-txt"></span></label></div>
+<div class="demo"><label for="preview"><input type="checkbox" id="preview" checked><span id="demo-txt"></span></label><label for="offline"><input type="checkbox" id="offline"><span id="offline-txt"></span></label></div>
 
 <section id="view-driver" class="stage">
   <div class="phone" id="phone"></div>
@@ -236,21 +244,21 @@ const S={
  scrN:{en:"Driver app · screen {0} of {1}",he:"אפליקציית נהג · מסך {0} מתוך {1}"},
  hShows:{en:"Shows",he:"מה מוצג"}, hDriver:{en:"The driver does",he:"מה הנהג עושה"}, hRules:{en:"Rules",he:"כללים"}, hSaved:{en:"Saved for this delivery",he:"מה נשמר למסירה"},
  scr:{en:{
-  terms:["Start of day","Opened from the link the driver gets by SMS. Nothing to install.",[],["Tick all 3 end-of-day rules, then start."],["The button unlocks only when all 3 are ticked.","Shown once a day. After that the app opens on the list."],["Time the driver confirmed."]],
-  list:["Today's deliveries","The deliveries the main system gave this driver today.",["One row per delivery ID, in the order the main system sent them.","Customer, address, boxes, amount due and payment method all come from the existing order.","Top strip: number of checks, cash total, deliveries done."],["Tap a delivery to open it.","Drag ⋮⋮ to change the order (for the driver only)."],["Done (✓) and not delivered (✕) rows can't be moved or reopened, except undo within 10 minutes."],[]],
-  box:["Step 1: Delivery + signature","",["Customer, address (tap Navigate for Waze), phone (tap to call), amount due, boxes."],["Set how many boxes were delivered.","Take one or more delivery photos.","Customer signs on the screen; driver fixes the signer's name.","Or: \"Customer did not take the delivery\" + one reason. That closes it as Not delivered."],["Next unlocks only with: boxes > 0, a photo, a signature and a name.","Fewer boxes than ordered = partly delivered."],["Boxes delivered, delivery photos, signature image, signer name.","Or: not delivered + reason."]],
-  pay:["Step 2: Payment","Skipped when the order has nothing to pay.",["Amount due, collected so far, and what's left."],["Add one or more payment lines: Check, Cash or Credit.","Check: photograph it. The check details fill in from the photo (how is up to you); the driver can fix them and must enter the due date.","Cash: photograph the cash. Credit: amount only."],["Next unlocks when every line is complete.","If collected ≠ due, the driver must pick a reason.","Warnings, not blocking: same check scanned twice, third-party check, due date past the customer's terms."],["Each line: type, amount, photo; for a check also number, bank, branch, account, account holder, ID, due date.","Reason for a difference, if any."]],
-  rma:["Step 3: Returns","Optional.",[],["Photograph goods going back, or just tap Finish."],["Finish sends the delivery. The two new columns in the main system update right away.","The driver can reopen it for 10 minutes."],["Return photos."]],
-  summary:["Day summary","Always one tap away from the list.",["What goes in the checks envelope and the cash envelope, per customer.","Packages going back to the office.","Totals."],["Tap \"Close the day\" at the end."],["Close the day works only when no delivery is open."],["Time the day was closed."]],
-  done:["Delivery page","The page the \"Delivery status\" link opens. Driver and office see the same page.",["Status and time, photos, signature, signer, payment lines."],[],[],[]]},
+  terms:["Start of day","Opened from the driver's existing link (one per driver, sent by WhatsApp). Nothing to install.",[],["Tick all 3 end-of-day rules, then start."],["The button unlocks only when all 3 are ticked.","Shown once a day. After that the app opens on the list."],["Time the driver confirmed ⟨new⟩"]],
+  list:["Today's deliveries","The deliveries on this driver's link today.",["One row per delivery ID, in the order the main system sent them.","Customer, address, phone, amount due, payment terms and packages, as the existing driver link already shows.","Top strip: number of checks, cash total, deliveries done."],["Tap a delivery to open it.","Drag ⋮⋮ to change the order (for the driver only)."],["Done (✓) and not delivered (✕) rows can't be moved or reopened, except undo within 10 minutes.","No signal: a finished delivery stays on the phone, marked \"waiting for signal\", and sends by itself later."],["Driver's order ⟨new⟩"]],
+  box:["Step 1: Delivery + signature","",["Customer, address (tap Navigate for Waze), phone (tap to call), amount due, packages."],["Set how many boxes were delivered.","Photograph the package (one or more photos).","Optionally photograph the receipt.","Customer signs on the screen; driver fixes the receiver's name.","Tap × on a photo to remove it.","Or: \"Customer did not take the delivery\" + one reason. That closes it as Not delivered."],["Next unlocks only with: boxes > 0, a package photo, a signature and a name.","Fewer boxes than ordered = partly delivered."],["Package photo ⟨old⟩","Receipt photo ⟨old⟩","Signature ⟨old⟩","Receiver name ⟨old⟩","Boxes delivered ⟨new⟩","Not delivered + reason ⟨new⟩"]],
+  pay:["Step 2: Payment","Skipped when the order has nothing to pay.",["Amount due, collected so far, and what's left."],["Add one or more payment lines: Check, Cash or Credit.","Check: photograph it. The check details fill in from the photo (how is up to you); the driver can fix them and must enter the due date.","Cash: photograph the cash. Credit: amount only."],["Next unlocks when every line is complete.","If collected ≠ due, the driver must pick a reason.","Warnings, not blocking: same check scanned twice, third-party check, due date past the customer's terms."],["Amount paid ⟨old⟩","Payment method per line: check / cash / credit ⟨new⟩","Check photo and details (number, bank, branch, account, holder, ID, due date) ⟨new⟩","Cash photo ⟨new⟩","Reason for a difference ⟨new⟩"]],
+  rma:["Step 3: Returns (RMA)","Optional.",[],["Photograph goods going back and add a short note, or just tap Finish."],["Finish sends the delivery. The two new columns in the main system update right away.","The driver can reopen it for 10 minutes."],["Return photos ⟨new⟩","Return note ⟨new⟩"]],
+  summary:["Day summary","Always one tap away from the list.",["What goes in the checks envelope and the cash envelope, per customer.","Packages going back to the office.","Totals."],["Tap \"Close the day\" at the end."],["Close the day works only when no delivery is open."],["Time the day was closed ⟨new⟩"]],
+  done:["Delivery page","The page the \"Delivery status\" link opens. Driver and office see the same page.",["Status and time, package and receipt photos, signature, receiver, payment lines, returns."],[],[],[]]},
  he:{
-  terms:["תחילת יום","נפתח מהקישור שהנהג מקבל ב-SMS. אין צורך בהתקנה.",[],["לסמן את שלושת נהלי סוף היום ולהתחיל."],["הכפתור נפתח רק כשכל השלושה מסומנים.","מוצג פעם ביום. אחר כך האפליקציה נפתחת ישר ברשימה."],["שעת האישור של הנהג."]],
-  list:["המסירות של היום","המסירות שהמערכת הראשית נתנה לנהג היום.",["שורה לכל מספר מסירה, בסדר שהמערכת שלחה.","לקוח, כתובת, ארגזים, סכום לגבייה ואמצעי תשלום, הכל מההזמנה הקיימת.","פס עליון: מספר שיקים, סך מזומן, כמה נמסרו."],["לחיצה על מסירה פותחת אותה.","גרירה בידית ⋮⋮ משנה את הסדר (רק אצל הנהג)."],["שורות שהושלמו (✓) או לא נמסרו (✕) לא זזות ולא נפתחות, חוץ מביטול תוך 10 דקות."],[]],
-  box:["שלב 1: מסירה וחתימה","",["לקוח, כתובת (ניווט פותח Waze), טלפון (לחיצה מחייגת), סכום לגבייה, ארגזים."],["לקבוע כמה ארגזים נמסרו.","לצלם תמונה אחת או יותר של המסירה.","הלקוח חותם על המסך; הנהג מתקן את שם החותם.","או: \"הלקוח לא קיבל את המסירה\" + סיבה אחת. המסירה נסגרת כלא נמסרה."],["\"הבא\" נפתח רק עם: ארגזים מעל 0, תמונה, חתימה ושם.","פחות ארגזים מההזמנה = נמסר חלקית."],["ארגזים שנמסרו, תמונות מסירה, תמונת חתימה, שם החותם.","או: לא נמסר + סיבה."]],
-  pay:["שלב 2: תשלום","מדולג כשאין מה לגבות בהזמנה.",["סכום לגבייה, כמה נגבה ומה חסר."],["להוסיף שורת תשלום אחת או יותר: שיק, מזומן או אשראי.","שיק: לצלם. פרטי השיק מתמלאים מהתמונה (איך, זה בידיים שלך); הנהג יכול לתקן וחייב להזין תאריך פירעון.","מזומן: לצלם את הכסף. אשראי: סכום בלבד."],["\"הבא\" נפתח כשכל שורה מלאה.","אם נגבה סכום שונה מהנדרש, הנהג חייב לבחור סיבה.","אזהרות שלא חוסמות: אותו שיק נסרק פעמיים, שיק צד ג', פירעון מעבר לתנאי הלקוח."],["כל שורה: סוג, סכום, תמונה; לשיק גם מספר, בנק, סניף, חשבון, בעל החשבון, ת.ז, תאריך פירעון.","סיבת הפרש, אם יש."]],
-  rma:["שלב 3: חזרות","לא חובה.",[],["לצלם סחורה שחוזרת, או פשוט ללחוץ \"סיום מסירה\"."],["\"סיום מסירה\" שולח את המסירה. שתי העמודות החדשות במערכת הראשית מתעדכנות מיד.","הנהג יכול לפתוח מחדש עד 10 דקות."],["תמונות חזרות."]],
-  summary:["סיכום יום","לחיצה אחת מהרשימה, בכל רגע.",["מה נכנס למעטפת השיקים ולמעטפת המזומן, לפי לקוח.","חבילות שחוזרות למשרד.","סיכומים."],["ללחוץ \"סגירת יום\" בסוף."],["סגירת יום אפשרית רק כשאין מסירה פתוחה."],["שעת סגירת היום."]],
-  done:["דף מסירה","הדף שהקישור בעמודת \"סטטוס מסירה\" פותח. הנהג והמשרד רואים אותו דף.",["סטטוס ושעה, תמונות, חתימה, חותם, שורות תשלום."],[],[],[]]}},
+  terms:["תחילת יום","נפתח מהקישור הקיים של הנהג (קישור אחד לכל נהג, נשלח בוואטסאפ). אין צורך בהתקנה.",[],["לסמן את שלושת נהלי סוף היום ולהתחיל."],["הכפתור נפתח רק כשכל השלושה מסומנים.","מוצג פעם ביום. אחר כך האפליקציה נפתחת ישר ברשימה."],["שעת האישור של הנהג ⟨new⟩"]],
+  list:["המסירות של היום","המסירות שבקישור של הנהג היום.",["שורה לכל מספר מסירה, בסדר שהמערכת שלחה.","לקוח, כתובת, טלפון, סכום לגבייה, תנאי תשלום וחבילות, כמו שהקישור הקיים כבר מציג.","פס עליון: מספר שיקים, סך מזומן, כמה נמסרו."],["לחיצה על מסירה פותחת אותה.","גרירה בידית ⋮⋮ משנה את הסדר (רק אצל הנהג)."],["שורות שהושלמו (✓) או לא נמסרו (✕) לא זזות ולא נפתחות, חוץ מביטול תוך 10 דקות.","אין קליטה: מסירה שהסתיימה נשמרת בטלפון, מסומנת \"ממתין לקליטה\", ונשלחת לבד אחר כך."],["הסדר של הנהג ⟨new⟩"]],
+  box:["שלב 1: מסירה וחתימה","",["לקוח, כתובת (ניווט פותח Waze), טלפון (לחיצה מחייגת), סכום לגבייה, חבילות."],["לקבוע כמה ארגזים נמסרו.","לצלם את החבילה (תמונה אחת או יותר).","אפשר לצלם גם קבלה.","הלקוח חותם על המסך; הנהג מתקן את שם המקבל.","לחיצה על × מוחקת תמונה.","או: \"הלקוח לא קיבל את המסירה\" + סיבה אחת. המסירה נסגרת כלא נמסרה."],["\"הבא\" נפתח רק עם: ארגזים מעל 0, צילום חבילה, חתימה ושם.","פחות ארגזים מההזמנה = נמסר חלקית."],["צילום חבילה ⟨old⟩","צילום קבלה ⟨old⟩","חתימה ⟨old⟩","שם המקבל ⟨old⟩","ארגזים שנמסרו ⟨new⟩","לא נמסר + סיבה ⟨new⟩"]],
+  pay:["שלב 2: תשלום","מדולג כשאין מה לגבות בהזמנה.",["סכום לגבייה, כמה נגבה ומה חסר."],["להוסיף שורת תשלום אחת או יותר: שיק, מזומן או אשראי.","שיק: לצלם. פרטי השיק מתמלאים מהתמונה (איך, זה בידיים שלך); הנהג יכול לתקן וחייב להזין תאריך פירעון.","מזומן: לצלם את הכסף. אשראי: סכום בלבד."],["\"הבא\" נפתח כשכל שורה מלאה.","אם נגבה סכום שונה מהנדרש, הנהג חייב לבחור סיבה.","אזהרות שלא חוסמות: אותו שיק נסרק פעמיים, שיק צד ג', פירעון מעבר לתנאי הלקוח."],["סכום ששולם ⟨old⟩","אמצעי תשלום לכל שורה: שיק / מזומן / אשראי ⟨new⟩","צילום שיק ופרטיו (מספר, בנק, סניף, חשבון, בעל החשבון, ת.ז, פירעון) ⟨new⟩","צילום מזומן ⟨new⟩","סיבת הפרש ⟨new⟩"]],
+  rma:["שלב 3: חזרות (RMA)","לא חובה.",[],["לצלם סחורה שחוזרת ולהוסיף הערה קצרה, או פשוט ללחוץ \"סיום מסירה\"."],["\"סיום מסירה\" שולח את המסירה. שתי העמודות החדשות במערכת הראשית מתעדכנות מיד.","הנהג יכול לפתוח מחדש עד 10 דקות."],["תמונות חזרות ⟨new⟩","הערת חזרה ⟨new⟩"]],
+  summary:["סיכום יום","לחיצה אחת מהרשימה, בכל רגע.",["מה נכנס למעטפת השיקים ולמעטפת המזומן, לפי לקוח.","חבילות שחוזרות למשרד.","סיכומים."],["ללחוץ \"סגירת יום\" בסוף."],["סגירת יום אפשרית רק כשאין מסירה פתוחה."],["שעת סגירת היום ⟨new⟩"]],
+  done:["דף מסירה","הדף שהקישור בעמודת \"סטטוס מסירה\" פותח. הנהג והמשרד רואים אותו דף.",["סטטוס ושעה, צילומי חבילה וקבלה, חתימה, מקבל, שורות תשלום, חזרות."],[],[],[]]}},
  hello:{en:"Hi {0}",he:"שלום {0}"},
  listMeta:{en:"{0} · {1} deliveries · {2} done",he:"{0} · {1} נקודות · הושלמו {2}"},
  waiting:{en:"{0} · {1} deliveries waiting for you",he:"{0} · {1} נקודות מסירה מחכות לך"},
@@ -284,8 +292,8 @@ const S={
  stepBox:{en:"Delivery + signature",he:"מסירה וחתימה"}, stepPay:{en:"Payment",he:"תשלום"}, stepRma:{en:"Returns",he:"חזרות"},
  howManyBoxes:{en:"How many boxes were delivered?",he:"כמה ארגזים נמסרו?"},
  less:{en:"Less",he:"פחות"}, more:{en:"More",he:"יותר"},
- photoDelivery:{en:"Photograph the delivery",he:"צלם את המסירה"}, sample:{en:"Use a sample photo",he:"תמונה לדוגמה"},
- custSign:{en:"Customer signature",he:"חתימת הלקוח"}, signer:{en:"Signed by",he:"שם החותם"}, clearSig:{en:"Clear",he:"נקה חתימה"},
+ photoDelivery:{en:"Photograph the package",he:"צלם את החבילה"}, receiptQ:{en:"Receipt photo (optional)",he:"צילום קבלה (לא חובה)"}, photoReceipt:{en:"Photograph the receipt",he:"צלם קבלה"}, sample:{en:"Use a sample photo",he:"תמונה לדוגמה"},
+ custSign:{en:"Customer signature",he:"חתימת הלקוח"}, signer:{en:"Receiver name",he:"שם המקבל"}, clearSig:{en:"Clear",he:"נקה חתימה"},
  notReceived:{en:"Customer did not take the delivery",he:"הלקוח לא קיבל את המסירה"},
  reasons:{en:{absent:"Customer not there",refused:"Customer refused",address:"Wrong address",damaged:"Damaged goods"},he:{absent:"הלקוח לא נמצא",refused:"הלקוח סירב",address:"כתובת שגויה",damaged:"סחורה פגומה"}},
  payments:{en:"Payments",he:"תשלומים"}, howPaid:{en:"How did the customer pay?",he:"איך הלקוח שילם?"},
@@ -294,6 +302,12 @@ const S={
  anyReturns:{en:"Anything coming back?",he:"יש סחורה שחוזרת?"},
  returnsOpt:{en:"Optional. If there are no returns, tap \"Finish delivery\".",he:"לא חובה. אם אין חזרות, לחץ \"סיום מסירה\"."},
  photoReturn:{en:"Photograph the return",he:"צלם חזרה"},
+ rmaNote:{en:"What's coming back and why (optional)",he:"מה חוזר ולמה (לא חובה)"},
+ offline:{en:"No signal",he:"אין קליטה"},
+ offlineBar:{en:"No signal. Deliveries are saved on the phone and send by themselves later.",he:"אין קליטה. המסירות נשמרות בטלפון ונשלחות לבד אחר כך."},
+ queued:{en:"Saved on the phone, waiting for signal",he:"נשמר בטלפון, ממתין לקליטה"},
+ savedOffline:{en:"Saved on the phone. It will send when there's signal.",he:"נשמר בטלפון. יישלח כשתהיה קליטה."},
+ tagOld:{en:"exists today",he:"קיים היום"}, tagNew:{en:"new",he:"חדש"},
  navigate:{en:"Navigate",he:"ניווט"},
  prev:{en:"Back",he:"הקודם"}, next:{en:"Next",he:"הבא"}, finish:{en:"Finish delivery",he:"סיום מסירה"},
  box0:{en:"0 boxes is not a delivery. If the customer didn't take it, tap below.",he:"0 ארגזים זו לא מסירה. אם הלקוח לא קיבל, לחץ למטה."},
@@ -321,12 +335,12 @@ const S={
  pickRow:{en:"Pick a delivery",he:"בחר מסירה"},
  doneAt:{en:"Delivered at {0}",he:"נמסר ב-{0}"}, notYet:{en:"Waiting to leave",he:"ממתין ליציאה"},
  next1:{en:"Next stop",he:"הנקודה הבאה"}, before1:{en:"1 delivery before",he:"מסירה אחת לפני"}, beforeN:{en:"{0} deliveries before",he:"{0} מסירות לפני"},
- tDelivery:{en:"Delivery",he:"מסירה"}, tSignature:{en:"Signature",he:"חתימה"}, tReturns:{en:"Returns ({0})",he:"חזרות ({0})"}, noReturnsTile:{en:"No returns",he:"אין חזרות"},
- signedBy:{en:"Signed by",he:"חתם"}, payment:{en:"Payment",he:"תשלום"}, ofTotal:{en:"of {0}",he:"מתוך {0}"},
+ tDelivery:{en:"Package",he:"חבילה"}, tReceipt:{en:"Receipt",he:"קבלה"}, tSignature:{en:"Signature",he:"חתימה"}, tReturns:{en:"Returns ({0})",he:"חזרות ({0})"}, noReturnsTile:{en:"No returns",he:"אין חזרות"},
+ signedBy:{en:"Received by",he:"קיבל"}, payment:{en:"Payment",he:"תשלום"}, ofTotal:{en:"of {0}",he:"מתוך {0}"},
  thirdTag:{en:"3rd party",he:"צד ג'"},
  otherDriver:{en:"Example: another driver's delivery, no photos in this mockup.",he:"דוגמה: מסירה של נהג אחר, ללא תמונות בהדמיה."},
  willAppear:{en:"Photo, signature and payment appear here when the driver finishes.",he:"תמונה, חתימה ותשלום יופיעו כאן כשהנהג יסיים."},
- phDelivery:{en:"Delivery photo",he:"תמונת מסירה"}, phReturn:{en:"Return",he:"חזרה"}, phCash:{en:"Cash photo",he:"צילום מזומן"}, phBroken:{en:"Faulty unit",he:"מזגן תקול"},
+ phDelivery:{en:"Package photo",he:"צילום חבילה"}, phReceipt:{en:"Receipt",he:"קבלה"}, phReturn:{en:"Return",he:"חזרה"}, phCash:{en:"Cash photo",he:"צילום מזומן"}, phBroken:{en:"Faulty unit",he:"מזגן תקול"},
 };
 let lang="he";
 try{const s=localStorage.getItem("lang");if(s==="en"||s==="he")lang=s;else lang=(navigator.language||"").startsWith("he")?"he":"en"}catch(e){lang=(navigator.language||"").startsWith("he")?"he":"en"}
@@ -346,7 +360,7 @@ const driver={name:{en:"Moshe Cohen",he:"משה כהן"},date:"30.09.2026"};
 const D=[
  {id:"DLV-558812",cust:{en:"Sharon Electric Ltd.",he:"חשמל השרון בע\"מ"},taxId:"515195360",checkDays:45,contact:{en:"Danny Levi",he:"דני לוי"},phone:"052-1112233",addr:{en:"12 Herzl St., Ra'anana",he:"הרצל 12, רעננה"},amount:4250,boxes:2,method:"check",status:"completed",time:"08:42",seq:1,boxesDelivered:2,
   lines:[{type:"check",amount:4250,checkNum:"1000001",bank:"10",branch:"647",account:"01234567",drawerName:"Israel Israeli",drawerId:"123456782",dueDate:"2026-11-14",photo:null}],
-  res:{photos:[ph("phDelivery",160)],sig:sigImg(),signer:"Danny Levi",rmaPhotos:[ph("phBroken",0)]}},
+  res:{photos:[ph("phDelivery",160)],receipt:[ph("phReceipt",45)],sig:sigImg(),signer:"Danny Levi",rmaPhotos:[ph("phBroken",0)],rmaNote:"1 faulty unit (compressor noise)"}},
  {id:"DLV-558813",cust:{en:"Kirur Plus",he:"קירור פלוס"},taxId:"032503708",contact:{en:"Ronit",he:"רונית"},phone:"054-3344556",addr:{en:"45 Weizmann St., Kfar Saba",he:"ויצמן 45, כפר סבא"},amount:1890,boxes:1,method:"cash",status:"pending"},
  {id:"DLV-558817",cust:{en:"A.B. Cooling",he:"א.ב. מיזוג"},taxId:"514220981",contact:{en:"Avi",he:"אבי"},phone:"050-9988776",addr:{en:"8 HaTa'asiya St., Hod HaSharon",he:"התעשייה 8, הוד השרון"},amount:0,boxes:3,method:null,status:"pending"},
  {id:"DLV-558820",cust:{en:"Galei Yam Hotel",he:"מלון גלי ים"},taxId:"520031847",contact:{en:"Maintenance",he:"מחלקת אחזקה"},phone:"09-7654321",addr:{en:"3 HaYam St., Herzliya",he:"הים 3, הרצליה"},amount:12600,boxes:4,method:"credit",status:"pending"},
@@ -361,7 +375,7 @@ const others=[
 D[0].lines[0].photo=checkImg();
 window.__D=D;
 let order=D.map(d=>d.id), open=null, sel="DLV-558812";
-let preview=true, dayClosed=null, doneCount=1, draft=null, accepted=null, checksOk=[false,false,false];
+let offline=false, preview=true, dayClosed=null, doneCount=1, draft=null, accepted=null, checksOk=[false,false,false];
 const byId=id=>D.find(d=>d.id===id);
 const phone=document.getElementById("phone");
 
@@ -370,13 +384,13 @@ function renderList(){
   if(!accepted){renderTerms();return}
   setScr("list");
   const done=D.filter(d=>d.status!=="pending").length;
-  phone.innerHTML=`<div class="ph-head"><div class="t">${t("hello",L(driver.name))}</div><div class="m">${t("listMeta",driver.date,D.length,done)}</div><div class="prog"><i style="width:${done/D.length*100}%"></i></div></div>${tallyBar()}
+  phone.innerHTML=`<div class="ph-head"><div class="t">${t("hello",L(driver.name))}</div><div class="m">${t("listMeta",driver.date,D.length,done)}</div><div class="prog"><i style="width:${done/D.length*100}%"></i></div></div>${offBar()}${tallyBar()}
   <div class="ph-body"><div id="list" style="display:flex;flex-direction:column;gap:10px"></div><p class="hint">${t("dragHint")}</p><button class="btn ${done===D.length?"":"quiet"}" id="eod">${done===D.length?t("allDone"):t("interim")}</button></div>`;
   phone.querySelector("#eod").onclick=renderSummary;
   const list=phone.querySelector("#list");
   order.forEach((id,i)=>{const d=byId(id);const el=document.createElement("div");
     el.className="stop"+(d.status==="completed"?" done":d.status==="failed"?" fail":"");el.dataset.id=id;el.tabIndex=0;el.setAttribute("role","button");
-    el.innerHTML=`<span class="h" aria-label="drag">⋮⋮</span><span class="n">${d.status==="completed"?"✓":d.status==="failed"?"✕":i+1}</span><span class="c"><b>${L(d.cust)}</b><span>${L(d.addr)} · ${boxes(d.boxes)}</span></span><span class="amt">${d.amount?fmt(d.amount):"—"}<small>${d.amount?payTxt(d):""}</small></span>`;
+    el.innerHTML=`<span class="h" aria-label="drag">⋮⋮</span><span class="n">${d.status==="completed"?"✓":d.status==="failed"?"✕":i+1}</span><span class="c"><b>${L(d.cust)}</b><span>${L(d.addr)} · ${boxes(d.boxes)}</span>${d.queued?`<span class="q-wait">${t("queued")}</span>`:""}</span><span class="amt">${d.amount?fmt(d.amount):"—"}<small>${d.amount?payTxt(d):""}</small></span>`;
     el.addEventListener("click",e=>{if(e.target.classList.contains("h"))return;openStop(id)});
     el.addEventListener("keydown",e=>{if(e.key==="Enter")openStop(id)});
     list.appendChild(el)});
@@ -393,6 +407,7 @@ function renderTerms(){setScr("terms");
   phone.querySelector("#accept").onclick=()=>{accepted=now();renderList();renderOffice()};
 }
 function linesOf(r){return r.lines||[]}
+function esc(v){return String(v??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"})[c])}
 function paidSum(ls){return ls.reduce((a,l)=>a+(+l.amount||0),0)}
 function tally(){const c=D.filter(d=>d.status==="completed");const Ls=c.flatMap(d=>linesOf(d).map(l=>({...l,cust:d.cust})));
   const cash=Ls.filter(l=>l.type==="cash").reduce((a,l)=>a+(+l.amount||0),0);
@@ -403,6 +418,7 @@ function tally(){const c=D.filter(d=>d.status==="completed");const Ls=c.flatMap(
   const returns=[...failed.map(d=>({cust:d.cust,n:d.boxes})),...c.filter(d=>d.boxesDelivered!=null&&d.boxesDelivered<d.boxes).map(d=>({cust:d.cust,n:d.boxes-d.boxesDelivered}))];
   const checkList=Ls.filter(l=>l.type==="check").map(l=>({cust:l.cust,num:l.checkNum||""}));
   return {checkList,cashList,returns,cash,checks,credit,delivered:c.length,partial:c.filter(d=>d.boxesDelivered!=null&&d.boxesDelivered!==d.boxes).length,failed:failed.length,open:D.filter(d=>d.status==="pending").length,boxesBack}}
+function offBar(){return offline?`<div class="offline" role="status">${t("offlineBar")}</div>`:""}
 function tallyBar(){const x=tally();return `<div class="tally"><div><b>${x.checks}</b><span>${t("checks")}</span></div><div><b>${fmt(x.cash)}</b><span>${t("cash")}</span></div><div><b>${x.delivered}/${D.length}</b><span>${t("delivered")}</span></div></div>`}
 function renderSummary(){setScr("summary");const x=tally();const all=x.open===0;
   phone.innerHTML=`<div class="ph-head"><button class="back" id="back">${t("back")}</button><div class="t">${all?t("daySummary"):t("interim")}</div><div class="m">${L(driver.name)} · ${driver.date}</div></div>${tallyBar()}
@@ -423,19 +439,20 @@ function renderSummary(){setScr("summary");const x=tally();const all=x.open===0;
 const drafts={};
 function openStop(id){open=id;const d=byId(id);
   if(d.status==="pending"&&drafts[id]){draft=drafts[id];renderStop();return}
-  draft=drafts[id]={step:0,boxes:d.boxes,failOpen:false,photos:[],sig:false,signer:L(d.contact)||"",lines:[],rmaPhotos:[]};
+  draft=drafts[id]={step:0,boxes:d.boxes,failOpen:false,photos:[],sig:false,signer:L(d.contact)||"",lines:[],rmaPhotos:[],receipt:[],rmaNote:""};
   if(d.status!=="pending"){renderDone(d);return}
   renderStop();
 }
 function wizSteps(d){return ["box",...(d.amount?["pay"]:[]),"rma"]}
 function stepOk(d,k){if(preview)return true;if(k==="box")return draft.boxes>0&&draft.photos.length>0&&draft.sig&&draft.signer.trim().length>0;if(k==="pay")return payValid(d);return true}
-function photoBtn(id,label,key){return `<div class="bigfile"><label for="${id}" class="bigbtn">${label}</label><input id="${id}" type="file" accept="image/*" capture="environment" multiple><button class="small" data-demo="${key}">${t("sample")}</button></div><div class="thumbs">${draft[key].map(s=>`<img src="${s}" alt="">`).join("")}</div>`}
+function photoBtn(id,label,key){return `<div class="bigfile"><label for="${id}" class="bigbtn">${label}</label><input id="${id}" type="file" accept="image/*" capture="environment" multiple><button class="small" data-demo="${key}">${t("sample")}</button></div><div class="thumbs">${draft[key].map((s,i)=>`<span class="th"><img src="${s}" alt=""><button class="thx" data-rm="${key}:${i}" aria-label="${t("remove")}">×</button></span>`).join("")}</div>`}
 function renderStop(){const d=byId(open);const steps=wizSteps(d);const k=steps[draft.step];setScr(k);const last=draft.step===steps.length-1;
   const titles={box:t("stepBox"),pay:t("stepPay"),rma:t("stepRma")};
   let body="";
   if(k==="box")body=`<div class="q">${t("howManyBoxes")}</div>
     <div class="counter"><button class="cbtn" id="bx-minus" aria-label="${t("less")}">−</button><b id="bx-val">${draft.boxes}</b><button class="cbtn" id="bx-plus" aria-label="${t("more")}">+</button></div>
     <p class="warn" id="w-box">${boxWarn(d)}</p>${photoBtn("f-photo",t("photoDelivery"),"photos")}
+    <div class="q" style="font-size:1rem">${t("receiptQ")}</div>${photoBtn("f-receipt",t("photoReceipt"),"receipt")}
     <div class="q" style="font-size:1.1rem">${t("custSign")}</div><canvas class="sig" id="sig"></canvas>
     <div class="row" style="justify-content:space-between;align-items:end"><label class="fld" style="flex:1" for="signer">${t("signer")}<input type="text" id="signer" value="${draft.signer}"></label><button class="small" id="clr">${t("clearSig")}</button></div>
     <button class="small" id="fail" style="align-self:center">${t("notReceived")}</button>
@@ -447,21 +464,23 @@ function renderStop(){const d=byId(open);const steps=wizSteps(d);const k=steps[d
     <div id="diffbox">${diffBox(d)}</div>
     ${draft.lines.length?`<div class="sub" style="text-align:center">${t("addMore")}</div>`:""}
     <div class="paygrid">${["check","cash","credit"].map(m=>`<button class="paybtn" data-add="${m}">${draft.lines.length?"+ ":""}${payLabel(m)}${!draft.lines.length&&m===d.method?`<small>${t("perOrder")}</small>`:""}</button>`).join("")}</div>`}
-  if(k==="rma")body=`<div class="q">${t("anyReturns")}</div><p class="sub">${t("returnsOpt")}</p>${photoBtn("f-rma",t("photoReturn"),"rmaPhotos")}`;
+  if(k==="rma")body=`<div class="q">${t("anyReturns")}</div><p class="sub">${t("returnsOpt")}</p>${photoBtn("f-rma",t("photoReturn"),"rmaPhotos")}<label class="fld" for="rma-note">${t("rmaNote")}<textarea id="rma-note" rows="3">${esc(draft.rmaNote)}</textarea></label>`;
   phone.innerHTML=`<div class="ph-head"><button class="back" id="back">${t("back")}</button><div class="t">${L(d.cust)}</div><div class="m">${L(d.addr)} · <a href="https://waze.com/ul?q=${encodeURIComponent(d.addr.he)}" target="_blank" rel="noopener">${t("navigate")}</a> · <a class="ltr" style="white-space:nowrap" href="tel:${d.phone}">${d.phone}</a></div>
     <div class="m">${d.amount?fmt(d.amount)+" · "+payTxt(d):t("prepaid")} · ${boxes(d.boxes)}</div>
-    <div class="dots">${steps.map((s,i)=>`<span class="${i<draft.step?"done":i===draft.step?"cur":""}">${titles[s]}</span>`).join("")}</div></div>
+    <div class="dots">${steps.map((s,i)=>`<span class="${i<draft.step?"done":i===draft.step?"cur":""}">${titles[s]}</span>`).join("")}</div></div>${offBar()}
     <div class="ph-body wiz">${body}</div>
     <div class="wizfoot">${draft.step>0?`<button class="btn sec2" id="prev">${t("prev")}</button>`:""}<button class="btn" id="next" ${stepOk(d,k)?"":"disabled"}>${last?t("finish"):t("next")}</button></div>`;
   const $=q=>phone.querySelector(q);
   $("#back").onclick=()=>{open=null;renderList()};
   if($("#prev"))$("#prev").onclick=()=>{draft.step--;renderStop()};
   $("#next").onclick=()=>{if(last)finish();else{draft.step++;renderStop();window.scrollTo(0,0)}};
-  bindFile("f-photo","photos");bindFile("f-rma","rmaPhotos");
-  phone.querySelectorAll("[data-demo]").forEach(b=>b.onclick=()=>{const kk=b.dataset.demo;draft[kk].push(ph(kk==="photos"?"phDelivery":"phReturn",kk==="photos"?160:0));renderStop()});
+  bindFile("f-photo","photos");bindFile("f-rma","rmaPhotos");bindFile("f-receipt","receipt");
+  phone.querySelectorAll("[data-rm]").forEach(b=>b.onclick=()=>{const [k2,i]=b.dataset.rm.split(":");draft[k2].splice(+i,1);keepScroll(renderStop)});
+  if($("#rma-note"))$("#rma-note").oninput=e=>{draft.rmaNote=e.target.value};
+  phone.querySelectorAll("[data-demo]").forEach(b=>b.onclick=()=>{const kk=b.dataset.demo;draft[kk].push(kk==="photos"?ph("phDelivery",160):kk==="receipt"?ph("phReceipt",45):ph("phReturn",0));keepScroll(renderStop)});
   if(k==="box"){$("#bx-minus").onclick=()=>{draft.boxes=Math.max(0,draft.boxes-1);renderStop()};$("#bx-plus").onclick=()=>{draft.boxes++;renderStop()};
     $("#fail").onclick=()=>{draft.failOpen=!draft.failOpen;renderStop()};
-    phone.querySelectorAll("[data-reason]").forEach(b=>b.onclick=()=>{d.status="failed";d.closedAt=Date.now();d.time=now();d.reason=b.dataset.reason;d.seq=++doneCount;sel=d.id;open=null;renderList();renderOffice()});
+    phone.querySelectorAll("[data-reason]").forEach(b=>b.onclick=()=>{d.status="failed";d.queued=offline;d.closedAt=Date.now();d.time=now();d.reason=b.dataset.reason;d.seq=++doneCount;sel=d.id;open=null;renderList();renderOffice()});
     initSig();const sg=$("#signer");sg.oninput=()=>{draft.signer=sg.value;refreshNext()}}
   if(k==="pay"){
     phone.querySelectorAll("[data-add]").forEach(b=>b.onclick=()=>{const rem=Math.max(0,d.amount-paidSum(draft.lines));draft.lines.push({type:b.dataset.add,amount:rem,photo:null});renderStop()});
@@ -513,9 +532,9 @@ function now(){return new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minu
 function finish(){const d=byId(open);if(!d||d.status!=="pending")return;delete drafts[d.id];d.closedAt=Date.now();
   if(preview){if(d.amount&&!draft.lines.length)draft.lines.push({type:d.method,amount:d.amount,photo:null});draft.lines.forEach(l=>{if(l.type==="check"&&!l.checkNum){readCheck(l);l.dueDate=l.dueDate||"2026-11-06"}if(l.type!=="credit"&&!l.photo)l.photo=l.type==="check"?checkImg():ph("phCash",40)});if(!draft.signer.trim())draft.signer=L(d.contact);if(paidSum(draft.lines)!==d.amount&&!draft.diffReason)draft.diffReason="later"}
   d.status="completed";d.diffReason=draft.diffReason||null;d.seq=++doneCount;d.boxesDelivered=draft.boxes;d.time=now();d.lines=draft.lines.map(l=>({...l,amount:+l.amount}));
-  d.res={photos:draft.photos,sig:draft.sigData||sigImg(),signer:draft.signer,rmaPhotos:draft.rmaPhotos};
+  d.res={photos:draft.photos,receipt:draft.receipt,sig:draft.sigData||sigImg(),signer:draft.signer,rmaPhotos:draft.rmaPhotos,rmaNote:draft.rmaNote};d.queued=offline;
   sel=d.id;open=null;renderList();renderOffice();window.scrollTo(0,0);
-  const toast=document.createElement("div");toast.className="toast";toast.textContent=t("sent");phone.querySelector(".ph-body").prepend(toast);setTimeout(()=>toast.remove(),2600)}
+  const toast=document.createElement("div");toast.className="toast";toast.textContent=offline?t("savedOffline"):t("sent");if(offline)toast.style.background="var(--signal)";phone.querySelector(".ph-body").prepend(toast);setTimeout(()=>toast.remove(),2600)}
 function renderDone(d){setScr("done");const canUndo=d.closedAt&&Date.now()-d.closedAt<10*60*1000;
   phone.innerHTML=`<div class="ph-head"><button class="back" id="back">${t("back")}</button></div>
   <div class="ph-body">${pointHTML({...d,driver:driver.name})}${canUndo?`<button class="btn sec" id="undo">${t("undo")}</button>`:""}</div>`;
@@ -523,7 +542,7 @@ function renderDone(d){setScr("done");const canUndo=d.closedAt&&Date.now()-d.clo
   if(canUndo)phone.querySelector("#undo").onclick=()=>{d.status="pending";delete d.res;delete d.lines;delete d.boxesDelivered;d.seq=null;d.closedAt=null;renderOffice();openStop(d.id)}}
 
 /* ---------- main system: two new columns in the existing table ---------- */
-function allRows(){return [...order.map(id=>({...byId(id),driver:driver.name})),...others]}
+function allRows(){return [...order.map(id=>{const d=byId(id);return d.queued?{...d,status:"pending",res:null,lines:[],time:"",driver:driver.name}:{...d,driver:driver.name}}),...others]}
 function fmtDate(x){if(!x)return "";const [y,m,d]=x.split("-");return `${d}.${m}.${y}`}
 function lineText(l){return l.type==="check"?`<b>${t("check")}</b> <span class="ltr">${l.checkNum||""}</span> · ${fmtDate(l.dueDate)} · ${fmt(l.amount)}`:`<b>${payLabel(l.type)}</b> · ${fmt(l.amount)}`}
 function statusText(r){return r.status==="completed"?t("stDone"):r.status==="failed"?t("stFailed"):t("stPending")}
@@ -551,8 +570,8 @@ function pointHTML(r){
   let body=`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><div><h3>${L(r.cust)}</h3><div class="sub">${r.id} · ${L(r.driver)}</div></div>${head}</div>`;
   if(r.status==="completed"&&r.res){const ls=linesOf(r);
     const tile=(src,l,bg)=>src?`<button class="tile" data-full="${src}" aria-label="${l}"><img src="${src}" alt="" style="${bg||""}"><span>${l}</span></button>`:`<div class="tile empty"><span>${l}</span></div>`;
-    body+=`<div class="tiles">${tile(r.res.photos[0],t("tDelivery"))}${tile(r.res.sig,t("tSignature"),"background:#fff;object-fit:contain")}${ls.filter(l=>l.photo).map(l=>tile(l.photo,payLabel(l.type))).join("")}${r.res.rmaPhotos.length?tile(r.res.rmaPhotos[0],t("tReturns",r.res.rmaPhotos.length)):`<div class="tile empty"><span>${t("noReturnsTile")}</span></div>`}</div>
-    <dl class="info"><dt>${t("signedBy")}</dt><dd>${r.res.signer}</dd>${ls.length?`<dt>${t("payment")}</dt><dd><b>${fmt(paidSum(ls))}</b>${paidSum(ls)!==r.amount?` <span style="color:var(--signal)">(${t("ofTotal",fmt(r.amount))}${r.diffReason?" · "+t("diffs")[r.diffReason]:""})</span>`:""}</dd>`:""}
+    body+=`<div class="tiles">${tile(r.res.photos[0],t("tDelivery"))}${(r.res.receipt||[]).length?tile(r.res.receipt[0],t("tReceipt")):""}${tile(r.res.sig,t("tSignature"),"background:#fff;object-fit:contain")}${ls.filter(l=>l.photo).map(l=>tile(l.photo,payLabel(l.type))).join("")}${r.res.rmaPhotos.length?tile(r.res.rmaPhotos[0],t("tReturns",r.res.rmaPhotos.length)):`<div class="tile empty"><span>${t("noReturnsTile")}</span></div>`}</div>
+    <dl class="info"><dt>${t("signedBy")}</dt><dd>${esc(r.res.signer)}</dd>${r.res.rmaNote?`<dt>${t("stepRma")}</dt><dd>${esc(r.res.rmaNote)}</dd>`:""}${ls.length?`<dt>${t("payment")}</dt><dd><b>${fmt(paidSum(ls))}</b>${paidSum(ls)!==r.amount?` <span style="color:var(--signal)">(${t("ofTotal",fmt(r.amount))}${r.diffReason?" · "+t("diffs")[r.diffReason]:""})</span>`:""}</dd>`:""}
     ${ls.map(l=>`<dt>${payLabel(l.type)}</dt><dd>${l.type==="check"?`<span class="ltr">${l.checkNum} · ${l.bank}/${l.branch}/${l.account}</span> · ${fmtDate(l.dueDate)} · `:""}${fmt(l.amount)}${l.type==="check"&&l.drawerId&&r.taxId&&l.drawerId!==r.taxId?` <span style="color:var(--signal);font-weight:600">${t("thirdTag")}</span>`:""}</dd>`).join("")}</dl>`}
   else if(r.status==="completed") body+=`<p class="empty">${t("otherDriver")}</p>`;
   else if(r.status==="pending") body+=`<p class="empty">${t("willAppear")}</p>`;
@@ -568,7 +587,7 @@ function renderNotes(){const i=SCR.indexOf(scr),x=t("scr")[scr];
   document.getElementById("scr-n").textContent=t("scrN",i+1,SCR.length);
   document.getElementById("scr-h").textContent=x[0];
   const w=document.getElementById("scr-what");w.textContent=x[1];w.hidden=!x[1];
-  const sec=(h,a)=>a.length?`<h3>${t(h)}</h3><ul>${a.map(v=>`<li>${v}</li>`).join("")}</ul>`:"";
+  const sec=(h,a)=>a.length?`<h3>${t(h)}</h3><ul>${a.map(v=>`<li>${v.replace("⟨old⟩",`<span class="tag old">${t("tagOld")}</span>`).replace("⟨new⟩",`<span class="tag new">${t("tagNew")}</span>`)}</li>`).join("")}</ul>`:"";
   document.getElementById("scr-body").innerHTML=sec("hShows",x[2])+sec("hDriver",x[3])+sec("hRules",x[4])+sec("hSaved",x[5]);
   document.getElementById("map").innerHTML=SCR.map(k=>`<li><button data-go="${k}" aria-current="${k===scr}">${t("scr")[k][0]}</button></li>`).join("");
   document.querySelectorAll("#map [data-go]").forEach(b=>b.onclick=()=>goTo(b.dataset.go))}
@@ -593,12 +612,13 @@ function rerender(){if(open){const d=byId(open);if(d.status==="pending")renderSt
 function applyLang(){document.documentElement.lang=lang;document.documentElement.dir=lang==="he"?"rtl":"ltr";
   document.getElementById("lang-en").setAttribute("aria-pressed",lang==="en");document.getElementById("lang-he").setAttribute("aria-pressed",lang==="he");
   document.getElementById("app-name").textContent=t("appName");tabs.driver.textContent=t("tabDriver");tabs.office.textContent=t("tabOffice");
-  document.getElementById("demo-txt").textContent=t("demo");document.getElementById("map-h").textContent=t("mapH");
+  document.getElementById("demo-txt").textContent=t("demo");document.getElementById("offline-txt").textContent=t("offline");document.getElementById("map-h").textContent=t("mapH");
   document.title=t("appName")}
 function setLang(l){lang=l;try{localStorage.setItem("lang",l)}catch(e){}applyLang();rerender()}
 document.getElementById("lang-en").onclick=()=>setLang("en");document.getElementById("lang-he").onclick=()=>setLang("he");
 tabs.driver.onclick=()=>show("driver");tabs.office.onclick=()=>show("office");
 document.getElementById("preview").onchange=e=>{preview=e.target.checked;rerender()};
+document.getElementById("offline").onchange=e=>{offline=e.target.checked;if(!offline)D.forEach(d=>{d.queued=false});rerender()};
 applyLang();
 if(location.hash==="#office")show("office");
 renderList();renderOffice();
