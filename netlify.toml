@@ -1,6 +1,9 @@
 [build]
   publish = "public"
   functions = "netlify/functions"
+  # Each deploy costs Netlify credits: skip it when nothing the live site uses changed
+  # (tests, mockup, docs, ocr/ and the README don't need a deploy). Exit 0 = skip.
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- public netlify netlify.toml package.json package-lock.json"
 
 [functions]
   node_bundler = "esbuild"
