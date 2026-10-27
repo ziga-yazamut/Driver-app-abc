@@ -69,7 +69,7 @@ let editing=null;
 
 async function api(path,body){
   const r=await fetch(path,body?{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({code,...body})}:{cache:"no-store"});
-  const j=await r.json().catch(()=>({}));if(!r.ok){const e=new Error(j.error||"error");e.status=r.status;throw e}return j}
+  const j=await r.json().catch(()=>({}));if(!r.ok){const e=new Error(j.message?`${j.error}: ${j.message}`:j.error||"error");e.status=r.status;throw e}return j}
 
 function applyLang(){document.documentElement.lang=lang;document.documentElement.dir=lang==="he"?"rtl":"ltr";
   document.getElementById("lang-en").setAttribute("aria-pressed",lang==="en");document.getElementById("lang-he").setAttribute("aria-pressed",lang==="he");

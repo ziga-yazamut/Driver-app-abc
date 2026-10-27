@@ -9,8 +9,8 @@ export default async () => {
     .map(k => [k, !!process.env[k] || (k === 'SUPABASE_SECRET_KEY' && !!process.env.SUPABASE_SERVICE_ROLE_KEY)]));
   let tables = null, error = null;
   try {
-    const [lists, results] = await Promise.all([select('driver_lists', 'select=guid'), select('driver_results', 'select=delivery_id')]);
-    tables = { lists: lists.length, results: results.length };
+    const [lists, tasks, results] = await Promise.all([select('driver_lists', 'select=guid'), select('driver_tasks', 'select=id'), select('driver_results', 'select=delivery_id')]);
+    tables = { lists: lists.length, tasks: tasks.length, results: results.length };
   } catch (e) { error = e.message; }
   return json({ keys, source: readsOn() ? 'main' : 'office', mainWrite: writesOn(), tables, error }, 200, { 'Cache-Control': 'no-store' });
 };
