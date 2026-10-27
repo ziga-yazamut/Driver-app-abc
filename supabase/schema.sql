@@ -76,3 +76,6 @@ create table if not exists driver_tasks (
 );
 create index if not exists driver_tasks_guid on driver_tasks (guid);
 alter table driver_tasks enable row level security;
+
+-- Tell Supabase's API about new tables right away
+notify pgrst, 'reload schema';
