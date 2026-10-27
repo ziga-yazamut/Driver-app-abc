@@ -343,7 +343,7 @@ const S={
  phDelivery:{en:"Package photo",he:"צילום חבילה"}, phReceipt:{en:"Receipt",he:"קבלה"}, phReturn:{en:"Return",he:"חזרה"}, phCash:{en:"Cash photo",he:"צילום מזומן"}, phBroken:{en:"Faulty unit",he:"מזגן תקול"},
 };
 let lang="he";
-try{const s=localStorage.getItem("lang");if(s==="en"||s==="he")lang=s;else lang=(navigator.language||"").startsWith("he")?"he":"en"}catch(e){lang=(navigator.language||"").startsWith("he")?"he":"en"}
+try{const s=localStorage.getItem("uiLang");if(s==="en")lang=s}catch(e){}
 const t=(k,...a)=>{let s=S[k][lang];return typeof s==="string"?s.replace(/\{(\d)\}/g,(_,i)=>a[i]):s};
 const L=v=>v&&typeof v==="object"?v[lang]:v;
 
@@ -614,7 +614,7 @@ function applyLang(){document.documentElement.lang=lang;document.documentElement
   document.getElementById("app-name").textContent=t("appName");tabs.driver.textContent=t("tabDriver");tabs.office.textContent=t("tabOffice");
   document.getElementById("demo-txt").textContent=t("demo");document.getElementById("offline-txt").textContent=t("offline");document.getElementById("map-h").textContent=t("mapH");
   document.title=t("appName")}
-function setLang(l){lang=l;try{localStorage.setItem("lang",l)}catch(e){}applyLang();rerender()}
+function setLang(l){lang=l;try{localStorage.setItem("uiLang",l)}catch(e){}applyLang();rerender()}
 document.getElementById("lang-en").onclick=()=>setLang("en");document.getElementById("lang-he").onclick=()=>setLang("he");
 tabs.driver.onclick=()=>show("driver");tabs.office.onclick=()=>show("office");
 document.getElementById("preview").onchange=e=>{preview=e.target.checked;rerender()};

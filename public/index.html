@@ -113,8 +113,8 @@ const S={
 };
 const qs=new URLSearchParams(location.search);
 let lang;
-try{lang=localStorage.getItem("lang")}catch(e){}
-if(lang!=="en"&&lang!=="he")lang=(navigator.language||"").startsWith("en")?"en":"he";
+try{lang=localStorage.getItem("uiLang")}catch(e){}
+if(lang!=="en"&&lang!=="he")lang="he";
 const t=(k,...a)=>{let s=S[k][lang];return typeof s==="string"?s.replace(/\{(\d)\}/g,(_,i)=>a[i]):s};
 const esc=v=>String(v??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"})[c]);
 const fmt=n=>"₪"+Number(n||0).toLocaleString("en-US",{maximumFractionDigits:2});
@@ -178,7 +178,7 @@ function renderPeople(people){
 
 /* ---------- header bits ---------- */
 function langs(){return `<div class="langs" aria-label="Language"><button data-lang="he" aria-pressed="${lang==="he"}">עב</button><button data-lang="en" aria-pressed="${lang==="en"}">EN</button></div>`}
-function bindLangs(){phone.querySelectorAll("[data-lang]").forEach(b=>b.onclick=()=>{lang=b.dataset.lang;try{localStorage.setItem("lang",lang)}catch(e){}applyLang();rerender()})}
+function bindLangs(){phone.querySelectorAll("[data-lang]").forEach(b=>b.onclick=()=>{lang=b.dataset.lang;try{localStorage.setItem("uiLang",lang)}catch(e){}applyLang();rerender()})}
 function rerender(){if(!L){load();return}if(open){const d=byId(open);isDone(d)?renderDone(d):renderStop()}else renderList()}
 function offBar(){return (!navigator.onLine||cachedView)?`<div class="offline" role="status">${navigator.onLine?t("offlineCached"):t("offlineBar")}</div>`:""}
 function tally(){
