@@ -179,63 +179,30 @@ test('server: refuses photos from another delivery, incomplete results and wrong
   expect(list.source).toBe('office');
 });
 
-test('office: create a list, add and edit deliveries, results lock the row', async ({ browser, request }) => {
-  const page = await (await browser.newContext({ viewport: { width: 1280, height: 900 } })).newPage();
-  await page.goto('/office');
-  await page.click('#lang-en');
-  await page.fill('#code', 'test'); await page.click('#go');
-  await page.fill('#person', 'Yossi'); await page.click('#create');
-  await expect(page.locator('#link')).toContainText('/d/');
-  const af = page.locator('#af');
-  await af.locator('[data-k="company"]').fill('Kirur Plus');
-  await af.locator('[data-k="total"]').fill('760');
-  await af.locator('[data-save]').click();
-  await expect(page.locator('.mtable tbody tr')).toHaveCount(1);
-  await page.click('[data-edit]');
-  await page.locator('#ef [data-k="company"]').fill('Kirur Plus Ltd.');
-  await page.locator('#ef [data-save]').click();
-  await expect(page.locator('.mtable')).toContainText('Kirur Plus Ltd.');
-  const guid = (await page.textContent('#link')).split('/d/')[1].trim();
+test('office: view only, shows each list and what came back', async ({ browser, request }) => {
+  const guid = await newList(request);
   const [task] = (await (await request.get('/api/list?guid=' + guid)).json()).tasks;
   await request.post('/api/finish', { data: { guid, id: task.id, result: { status: 'not_delivered', reason: 'address' } } });
   expect((await office(request, { op: 'edit', id: task.id, task: { company: 'x' } })).status()).toBe(409);
-  await page.reload();
-  await expect(page.locator('[data-edit]')).toHaveCount(0);
-});
-
-test('office: the sample button works without a driver name', async ({ browser }) => {
-  const page = await (await browser.newContext({ viewport: { width: 390, height: 844 } })).newPage();
-  await page.goto('/office');
-  await page.click('#lang-en');
-  await page.fill('#code', 'test'); await page.click('#go');
-  await page.click('#sample');
-  await expect(page.locator('#link')).toContainText('/d/');
-  await expect(page.locator('.mtable tbody tr')).toHaveCount(4);
-  await expect(page.locator('h2').first()).toContainText('Sample driver');
-});
-
-test('main system, read only: the office opens a pasted driver link, the driver uses it, nothing is sent back', async ({ browser, request }) => {
-  test.skip(process.env.MAIN_READ === 'off', 'needs the fake main system');
-  const MAIN = 'aaaaaaaa-1111-4222-8333-bbbbbbbbbbbb', MASTER = 'cccccccc-1111-4222-8333-dddddddddddd';
   const page = await (await browser.newContext({ viewport: { width: 1280, height: 900 } })).newPage();
   await page.goto('/office');
+  await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');   // Hebrew by default
   await page.click('#lang-en');
   await page.fill('#code', 'test'); await page.click('#go');
-  await expect(page.locator('.note')).toContainText('reading only');
-  await page.fill('#mainlink', 'nothing here');
-  await page.click('#openmain');
-  await expect(page.locator('#mainerr')).toContainText('No link code');
-  await page.fill('#mainlink', 'https://abcmobile.shop/DeliveryList/Single/00000000-0000-4000-8000-000000000000');
-  await page.click('#openmain');
-  await expect(page.locator('#mainerr')).toContainText('no deliveries');
+  await page.click(`[data-g="${guid}"]`);
+  await expect(page.locator('.mtable tbody tr')).toHaveCount(4);
+  await expect(page.locator('.mtable tbody tr').first()).toContainText('Wrong address');
+  // nothing to type or send from here
+  await expect(page.locator('input, #link, [data-edit], [data-del], #af')).toHaveCount(0);
+});
+
+test('main system, read only: the driver opens the main link, the office sees it, nothing is sent back', async ({ browser, request }) => {
+  test.skip(process.env.MAIN_READ === 'off', 'needs the fake main system');
+  const MAIN = 'aaaaaaaa-1111-4222-8333-bbbbbbbbbbbb', MASTER = 'cccccccc-1111-4222-8333-dddddddddddd';
   // The "Manager" link of a sending lists its drivers
-  await page.fill('#mainlink', `Manager: https://abcmobile.shop/DeliveryList/Single/${MASTER}`);
-  await page.click('#openmain');
-  await page.click(`[data-g="${MAIN}"]`);
-  await expect(page.locator('.mtable tbody tr')).toHaveCount(2);
-  await expect(page.locator('.mtable')).toContainText('Main customer A');
-  await expect(page.locator('#af')).toHaveCount(0);
-  await expect(page.locator('.box h2').first()).toContainText('Main driver · 2025-10-27');
+  const master = await (await request.get('/api/list?guid=' + MASTER)).json();
+  expect(master.people).toEqual([{ person: 'Main driver', guid: MAIN, count: 2 }]);
+  expect((await request.get('/api/list?guid=00000000-0000-4000-8000-000000000000')).status()).toBe(404);
 
   // The driver opens the main system's link with this site's address
   const d = await (await browser.newContext()).newPage();
@@ -251,9 +218,16 @@ test('main system, read only: the office opens a pasted driver link, the driver 
   expect(list.writes).toBe(false);
   expect((await request.post('/api/finish', { data: { guid: MAIN, id: 501, result: { status: 'not_delivered', reason: 'address' } } })).status()).toBe(200);
   expect(await (await request.get('/test/main-posts')).json()).toEqual([]);
-  // The office can't type deliveries into a main-system list
   expect((await office(request, { op: 'add', guid: MAIN, task: { company: 'X' } })).status()).toBe(409);
-  // and it is now in the office's lists
-  const lists = await (await request.get('/api/office?code=test')).json();
-  expect(lists.lists.some(l => l.guid === MAIN && l.tasks === null)).toBe(true);
+
+  // The office sees the list once the driver opened it
+  const page = await (await browser.newContext({ viewport: { width: 1280, height: 900 } })).newPage();
+  await page.goto('/office');
+  await page.click('#lang-en');
+  await page.fill('#code', 'test'); await page.click('#go');
+  await expect(page.locator('.note')).toContainText('Reading the main system only');
+  await page.click(`[data-g="${MAIN}"]`);
+  await expect(page.locator('.box h2').first()).toContainText('Main driver · 2025-10-27');
+  await expect(page.locator('.mtable tbody tr')).toHaveCount(2);
+  await expect(page.locator('.mtable tbody tr').first()).toContainText('Wrong address');
 });

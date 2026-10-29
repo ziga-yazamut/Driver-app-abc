@@ -26,38 +26,31 @@ body{padding:0;background:var(--bg)}
 </style>
 <body>
 <div class="bar"><span class="name">ABC Driver · <span id="h-office"></span></span><span style="flex:1"></span>
-  <button class="small" id="sample" hidden></button>
   <div class="seg" aria-label="Language"><button id="lang-en" aria-pressed="false">EN</button><button id="lang-he" aria-pressed="false">עב</button></div></div>
 <div class="wrap" id="app"></div>
 <script>
 (function(){
-/* The office page: create a driver's list for the day, get the driver's link, and see what came back.
-   Typing the deliveries here is only until the main system is connected. */
+/* The office page, view only: each driver's list (from the links drivers opened) and what came back:
+   delivered or not, receiver, payments with check details, returns and every photo. Nothing is typed here. */
 const S={
  office:{en:"Office",he:"משרד"},
  code:{en:"Office code",he:"קוד משרד"}, enter:{en:"Enter",he:"כניסה"}, wrong:{en:"Wrong code",he:"קוד שגוי"},
  notConfigured:{en:"ADMIN_CODE is not set in Netlify yet.",he:"עדיין לא הוגדר ADMIN_CODE ב-Netlify."},
- newList:{en:"New driver list",he:"רשימה חדשה לנהג"}, driver:{en:"Driver",he:"נהג"}, date:{en:"Date",he:"תאריך"},
- create:{en:"Create",he:"צור"}, sample:{en:"+ 4 sample deliveries",he:"+ 4 מסירות לדוגמה"}, sampleDriver:{en:"Sample driver",he:"נהג לדוגמה"}, mkFailed:{en:"Did not work",he:"לא הצליח"},
  lists:{en:"Driver lists",he:"רשימות נהגים"}, none:{en:"No lists yet.",he:"אין עדיין רשימות."},
- count:{en:"{0} deliveries · {1} delivered · {2} not delivered",he:"{0} מסירות · {1} נמסרו · {2} לא נמסרו"},
+ count2:{en:"{0} delivered · {1} not delivered",he:"{0} נמסרו · {1} לא נמסרו"},
  back:{en:"‹ All lists",he:"→ כל הרשימות"},
- link:{en:"The driver's link",he:"הקישור לנהג"}, copy:{en:"Copy",he:"העתק"}, copied:{en:"Copied",he:"הועתק"}, wa:{en:"Send on WhatsApp",he:"שלח בוואטסאפ"},
- add:{en:"Add a delivery",he:"הוסף מסירה"}, company:{en:"Customer",he:"לקוח"}, city:{en:"City",he:"עיר"}, address:{en:"Address",he:"כתובת"}, phone:{en:"Phone",he:"טלפון"},
- total:{en:"To collect ₪",he:"לגבייה ₪"}, terms:{en:"Payment terms",he:"תנאי תשלום"}, boxes:{en:"Boxes",he:"ארגזים"}, comment:{en:"Note",he:"הערה"},
- save:{en:"Save",he:"שמור"}, edit:{en:"Edit",he:"ערוך"}, remove:{en:"Remove",he:"הסר"}, cancel:{en:"Cancel",he:"ביטול"}, removeList:{en:"Remove this list",he:"מחק את הרשימה"},
+ company:{en:"Customer",he:"לקוח"},
+ total:{en:"To collect ₪",he:"לגבייה ₪"}, boxes:{en:"Boxes",he:"ארגזים"},
  status:{en:"Status",he:"סטטוס"}, payment:{en:"Payment",he:"תשלום"}, photos:{en:"Photos",he:"תמונות"},
  open:{en:"Open",he:"פתוחה"}, delivered:{en:"Delivered {0}",he:"נמסר {0}"}, partial:{en:"Partly delivered {0}",he:"נמסר חלקית {0}"}, failed:{en:"Not delivered",he:"לא נמסר"},
  receiver:{en:"Received by {0}",he:"קיבל: {0}"}, boxesOf:{en:"{0} of {1} boxes",he:"{0} מתוך {1} ארגזים"},
  check:{en:"Check",he:"שיק"}, cash:{en:"Cash",he:"מזומן"}, credit:{en:"Credit",he:"אשראי"}, rma:{en:"Returns",he:"חזרות"},
  accepted:{en:"Rules confirmed {0}",he:"אישר נהלים {0}"}, closed:{en:"Day closed {0}",he:"היום נסגר {0}"},
- mainOff:{en:"Not connected to the main system yet: nothing is sent there.",he:"עדיין לא מחובר למערכת הראשית: שום דבר לא נשלח לשם."},
- fromMain:{en:"Connected to the main system for reading only: nothing is sent there.",he:"מחובר למערכת הראשית לקריאה בלבד: שום דבר לא נשלח לשם."},
- openMain:{en:"Open a driver link from the main system",he:"פתיחת קישור נהג מהמערכת הראשית"}, pasteLink:{en:"Paste the link the driver got on WhatsApp",he:"הדבק את הקישור שהנהג קיבל בוואטסאפ"}, open2:{en:"Open",he:"פתח"}, badLink:{en:"No link code found in this text.",he:"לא נמצא קוד קישור בטקסט הזה."}, notFound:{en:"The main system has no deliveries for this link.",he:"במערכת הראשית אין מסירות לקישור הזה."}, pick:{en:"This link has several drivers:",he:"בקישור הזה כמה נהגים:"}, fromMainList:{en:"From the main system (read only)",he:"מהמערכת הראשית (קריאה בלבד)"},
+ mainOff:{en:"Not connected to the main system yet (MAIN_READ in Netlify).",he:"עדיין לא מחובר למערכת הראשית (MAIN_READ ב-Netlify)."},
+ fromMain:{en:"What the drivers did, from their links. Reading the main system only: nothing is sent there.",he:"מה שהנהגים עשו, לפי הקישורים שלהם. קריאה בלבד מהמערכת הראשית: שום דבר לא נשלח לשם."},
+ pick:{en:"This link has several drivers:",he:"בקישור הזה כמה נהגים:"},
  reasons:{en:{absent:"Customer not there",refused:"Customer refused",address:"Wrong address",damaged:"Damaged goods"},he:{absent:"הלקוח לא נמצא",refused:"הלקוח סירב",address:"כתובת שגויה",damaged:"סחורה פגומה"}},
  diffs:{en:{later:"Will pay the rest later",discount:"Approved discount",dispute:"Disputes the goods",debt:"Previous balance",order:"Order mistake"},he:{later:"ישלים בהמשך",discount:"הנחה מאושרת",dispute:"מחלוקת על הסחורה",debt:"יתרה קודמת",order:"טעות בהזמנה"}},
- hasResult:{en:"This delivery already has a result.",he:"למסירה הזו כבר יש תוצאה."},
- waText:{en:"Hi {0}, your deliveries for today: {1}",he:"שלום {0}, המסירות שלך להיום: {1}"},
 };
 let lang;try{lang=localStorage.getItem("uiLang")}catch(e){}if(lang!=="en"&&lang!=="he")lang="he";
 const t=(k,...a)=>{let s=S[k][lang];return typeof s==="string"?s.replace(/\{(\d)\}/g,(_,i)=>a[i]):s};
@@ -67,7 +60,6 @@ const hhmm=iso=>iso?new Date(iso).toLocaleTimeString("en-GB",{hour:"2-digit",min
 const app=document.getElementById("app");
 let code="";try{code=localStorage.getItem("officeCode")||""}catch(e){}
 let view=null; // null = all lists, else a guid
-let editing=null;
 
 async function api(path,body){
   const r=await fetch(path,body?{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({code,...body})}:{cache:"no-store"});
@@ -85,34 +77,17 @@ function login(msg){
   app.querySelector("#go").onclick=go;app.querySelector("#code").onkeydown=e=>{if(e.key==="Enter")go()}}
 
 async function render(){
-  document.getElementById("sample").hidden=true;
   if(!code){login();return}
   try{view?await renderList(view):await renderLists()}
   catch(e){if(e.status===403){code="";login(t("wrong"))}else if(e.status===503)app.innerHTML=`<div class="box">${t("notConfigured")}</div>`;else app.innerHTML=`<div class="box">${esc(e.message)}</div>`}}
 
 async function renderLists(){
   const j=await api("/api/office?code="+encodeURIComponent(code));
-  const today=new Date(Date.now()+3*3600e3).toISOString().slice(0,10);
   app.innerHTML=`<p class="note">${j.main?t("fromMain"):t("mainOff")}</p>
-  ${j.main?`<div class="box"><h2>${t("openMain")}</h2><div class="form"><label class="fld">${t("pasteLink")}<input type="text" id="mainlink" dir="ltr" placeholder="https://abcmobile.shop/DeliveryList/Single/…"></label><button class="btn small2" id="openmain">${t("open2")}</button></div><p id="mainerr" style="margin:0;color:var(--bad)"></p></div>`:""}
-  ${j.typing?`<div class="box"><h2>${t("newList")}</h2><div class="form"><label class="fld">${t("driver")}<input type="text" id="person" required></label><label class="fld">${t("date")}<input type="date" id="date" value="${today}"></label><button class="btn small2" id="create">${t("create")}</button></div><p id="mkerr" style="margin:0;color:var(--bad)"></p></div>`:""}
-  <div class="box"><h2>${t("lists")}</h2><div class="lists">${j.lists.length?j.lists.map(l=>`<button class="li" data-g="${esc(l.guid)}"><span><b>${esc(l.person)}</b> · ${esc(l.list_date)}</span><span class="sub">${t("count",l.tasks??"–",l.delivered,l.failed)}</span></button>`).join(""):`<p class="sub">${t("none")}</p>`}</div></div>`;
+  <div class="box"><h2>${t("lists")}</h2><div class="lists">${j.lists.length?j.lists.map(l=>`<button class="li" data-g="${esc(l.guid)}"><span><b>${esc(l.person)}</b> · ${esc(l.list_date)}</span><span class="sub">${t("count2",l.delivered,l.failed)}</span></button>`).join(""):`<p class="sub">${t("none")}</p>`}</div></div>`;
   app.querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>{view=b.dataset.g;render()});
-  if(j.main)app.querySelector("#openmain").onclick=async e=>{const m=/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i.exec(app.querySelector("#mainlink").value);const er=app.querySelector("#mainerr");
-    if(!m){er.textContent=t("badLink");return}
-    e.target.disabled=true;er.textContent="";
-    try{await api(`/api/office?code=${encodeURIComponent(code)}&guid=${m[0].toLowerCase()}`);view=m[0].toLowerCase();render()}
-    catch(x){e.target.disabled=false;er.textContent=x.status===404?t("notFound"):t("mkFailed")+" ("+(x.status||"")+" "+x.message+")"}};
-  const mk=async(op,b)=>{const pf=app.querySelector("#person");let person=pf.value.trim();if(op==="sample")person=t("sampleDriver");else if(!person){pf.focus();pf.reportValidity?.();return}
-    b.disabled=true;const done=()=>{b.disabled=false};const e0=app.querySelector("#mkerr");e0.textContent="";
-    try{const r=await api("/api/office",{op,person,date:app.querySelector("#date").value});done();view=r.guid;render()}
-    catch(e){done();e0.textContent=e.status===503?t("notConfigured"):e.status===403?t("wrong"):t("mkFailed")+" ("+(e.status||"")+" "+e.message+")"}};
-  if(j.typing){app.querySelector("#create").onclick=e=>mk("create",e.target);const sb=document.getElementById("sample");sb.textContent=t("sample");sb.hidden=false;sb.onclick=e=>mk("sample",e.target)}
 }
 
-const FIELDS=[["company","text"],["address","text"],["city","text"],["phone","tel"],["total","number"],["terms","text"],["boxes","number"],["comment","text"]];
-function taskForm(tk,id){return `<div class="form" id="${id}">${FIELDS.map(([k,ty])=>`<label class="fld">${t(k)}<input type="${ty}" data-k="${k}" value="${esc(tk?tk[k]:k==="boxes"?1:"")}" ${ty==="number"?'inputmode="decimal"':""}></label>`).join("")}<button class="btn small2" data-save>${t("save")}</button></div>`}
-const readForm=el=>Object.fromEntries([...el.querySelectorAll("[data-k]")].map(i=>[i.dataset.k,i.value]));
 
 function resultCell(tk,r){
   if(!r)return `<span class="st pending">${t("open")}</span>`;
@@ -132,27 +107,14 @@ async function renderList(g){
   const j=await api(`/api/office?code=${encodeURIComponent(code)}&guid=${g}`);
   if(j.master){app.innerHTML=`<button class="small" id="back" style="align-self:flex-start">${t("back")}</button><div class="box"><h2>${t("pick")}</h2><div class="lists">${j.people.map(p=>`<button class="li" data-g="${esc(p.guid)}"><b>${esc(p.person)}</b><span class="sub">${p.count}</span></button>`).join("")}</div></div>`;
     app.querySelector("#back").onclick=()=>{view=null;render()};app.querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>{view=b.dataset.g;render()});return}
-  const link=`${location.origin}/d/${g}`;
-  const done=id=>!!j.results[id];
   app.innerHTML=`<button class="small" id="back" style="align-self:flex-start">${t("back")}</button>
   <div class="box"><h2>${esc(j.person)} · ${esc(j.date)}</h2>
-    <div class="sub">${j.typing?"":t("fromMainList")+" · "}${j.day&&j.day.accepted_at?t("accepted",hhmm(j.day.accepted_at)):""}${j.day&&j.day.closed_at?" · "+t("closed",hhmm(j.day.closed_at)):""}</div>
-    <label class="fld">${t("link")}<div class="link" id="link">${esc(link)}</div></label>
-    <div class="row"><button class="chip" id="copy">${t("copy")}</button><a class="chip" style="text-decoration:none" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(t("waText",j.person,link))}">${t("wa")}</a></div></div>
-  <div class="box"><div class="cards" style="border:0"><table class="mtable"><thead><tr><th>${t("company")}</th><th>${t("total")}</th><th>${t("status")}</th><th>${t("payment")}</th><th>${t("photos")}</th>${j.typing?"<th></th>":""}</tr></thead><tbody>
-    ${j.tasks.map(tk=>{const r=j.results[tk.id];return editing===tk.id?`<tr><td colspan="6">${taskForm(tk,"ef")}<button class="small" id="cancel">${t("cancel")}</button></td></tr>`:
-      `<tr><td><b>${esc(tk.company)}</b><div class="sub">${esc([tk.address,tk.city].filter(Boolean).join(", "))}</div><div class="sub">${esc(tk.phone)} · ${tk.boxes} ${t("boxes")}</div></td><td class="num">${fmt(tk.due)}<div class="sub">${esc(tk.terms)}</div></td>
-      <td>${resultCell(tk,r)}</td><td>${payCell(tk,r)}</td><td>${photoCell(r)}</td>${j.typing?`<td>${done(tk.id)?"":`<button class="small" data-edit="${tk.id}">${t("edit")}</button> <button class="small" data-del="${tk.id}">${t("remove")}</button>`}</td>`:""}</tr>`}).join("")}
-  </tbody></table></div></div>
-  ${j.typing?`<div class="box"><h2>${t("add")}</h2>${taskForm(null,"af")}</div>`:""}
-  ${Object.keys(j.results).length?"":`<button class="small" id="rmlist" style="align-self:flex-start;color:var(--bad)">${t("removeList")}</button>`}`;
-  app.querySelector("#back").onclick=()=>{view=null;editing=null;render()};
-  app.querySelector("#copy").onclick=async e=>{try{await navigator.clipboard.writeText(link);e.target.textContent=t("copied")}catch(_){}};
-  const af=app.querySelector("#af");if(af)af.querySelector("[data-save]").onclick=async()=>{const task=readForm(af);if(!task.company.trim())return;await api("/api/office",{op:"add",guid:g,task});render()};
-  const ef=app.querySelector("#ef");if(ef){ef.querySelector("[data-save]").onclick=async()=>{try{await api("/api/office",{op:"edit",id:editing,task:readForm(ef)})}catch(e){alert(t("hasResult"))}editing=null;render()};app.querySelector("#cancel").onclick=()=>{editing=null;render()}}
-  app.querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>{editing=+b.dataset.edit;render()});
-  app.querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{try{await api("/api/office",{op:"remove",id:+b.dataset.del})}catch(e){alert(t("hasResult"))}render()});
-  const rl=app.querySelector("#rmlist");if(rl)rl.onclick=async()=>{if(!confirm(t("removeList")+"?"))return;await api("/api/office",{op:"removeList",guid:g});view=null;render()};
+    <div class="sub">${j.day&&j.day.accepted_at?t("accepted",hhmm(j.day.accepted_at)):""}${j.day&&j.day.closed_at?" · "+t("closed",hhmm(j.day.closed_at)):""}</div></div>
+  <div class="box"><div class="cards" style="border:0"><table class="mtable"><thead><tr><th>${t("company")}</th><th>${t("total")}</th><th>${t("status")}</th><th>${t("payment")}</th><th>${t("photos")}</th></tr></thead><tbody>
+    ${j.tasks.map(tk=>{const r=j.results[tk.id];return `<tr><td><b>${esc(tk.company)}</b><div class="sub">${esc([tk.address,tk.city].filter(Boolean).join(", "))}</div><div class="sub">${esc(tk.phone)} · ${tk.boxes} ${t("boxes")}</div></td><td class="num">${fmt(tk.due)}<div class="sub">${esc(tk.terms)}</div></td>
+      <td>${resultCell(tk,r)}</td><td>${payCell(tk,r)}</td><td>${photoCell(r)}</td></tr>`}).join("")}
+  </tbody></table></div></div>`;
+  app.querySelector("#back").onclick=()=>{view=null;render()};
 }
 applyLang();render();
 })();
