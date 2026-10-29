@@ -1,5 +1,5 @@
 // The main system client (netlify/lib/abc.mjs) against a fake fetch: reading the driver's list,
-// and that nothing is ever written unless MAIN_READ and MAIN_WRITE are both on.
+// and that nothing is ever written unless MAIN_WRITE is on (and MAIN_READ is not off).
 // Run: node --test test/
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -37,16 +37,19 @@ test('a master link returns the drivers in it', async () => {
   assert.deepEqual(m.people.map(p => p.person), ['Moshe', 'Avi']);
 });
 
-test('writes nothing unless both MAIN_READ and MAIN_WRITE are on', async () => {
+test('reads by default; writes nothing unless MAIN_WRITE is on and MAIN_READ is not off', async () => {
   const calls = fakeFetch(() => res({ Status: 200 }));
   delete process.env.MAIN_READ; delete process.env.MAIN_WRITE;
+  assert.equal(readsOn(), true, 'reading is on by default');
+  assert.equal(writesOn(), false);
+  process.env.MAIN_READ = 'off';
   assert.equal(readsOn(), false);
   assert.deepEqual(await finalize({ id: 1, name: 'x', signatureB64: 'a', packageB64: 'b', amountPaid: 1 }), { skipped: true });
   process.env.MAIN_WRITE = 'on';
-  assert.equal(writesOn(), false, 'MAIN_WRITE alone is not enough');
+  assert.equal(writesOn(), false, 'MAIN_WRITE with MAIN_READ=off is not enough');
   assert.deepEqual(await setPositions(GUID, [1, 2]), { skipped: true });
   assert.equal(calls.length, 0);
-  process.env.MAIN_READ = 'on';
+  delete process.env.MAIN_READ;
   const r = await finalize({ id: 812, name: 'Danny', signatureB64: 'SIG', packageB64: 'PKG', amountPaid: 1500 });
   assert.equal(r.ok, true);
   const body = JSON.parse(calls[0].body);

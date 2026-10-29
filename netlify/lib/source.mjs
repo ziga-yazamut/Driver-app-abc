@@ -1,5 +1,5 @@
 // Where the driver's deliveries come from.
-// A list the office typed in /office comes from Supabase. Any other GUID, with MAIN_READ=on, is read from the
+// A list the office typed in /office comes from Supabase. Any other GUID is read from the
 // main system (abcmobile GetModel), so both work side by side. Office GUIDs are random and their delivery ids
 // start at 1000000000, so they never meet the main system's.
 import { select } from './supa.mjs';

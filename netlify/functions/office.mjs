@@ -7,7 +7,7 @@
 // POST /api/office {code, op:'edit', id, task}               change a delivery that has no result yet
 // POST /api/office {code, op:'remove', id}                   remove a delivery that has no result yet
 // POST /api/office {code, op:'removeList', guid}             remove a list that has no results
-// The office can type test lists also while the main system is read (MAIN_READ=on): both work side by side.
+// The office can type test lists also while the main system is read: both work side by side.
 // Opening a main-system GUID here adds it to the lists.
 import { json, handle } from '../lib/http.mjs';
 import { select, insert, update, remove } from '../lib/supa.mjs';

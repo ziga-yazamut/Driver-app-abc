@@ -1,9 +1,9 @@
 // The main system (abcmobile.shop): only the driver-link endpoints that already exist there
 // (MobileParts/Controllers/DeliveryListController.cs). Nothing new is asked of the main system.
 //
-// Nothing here runs until MAIN_READ=on in Netlify. Until then the deliveries come from the office page
-// (netlify/lib/source.mjs). Yonatan decided on 25.10 to go live first and connect the main system last.
-// Reading (MAIN_READ=on):  GET  /DeliveryList/GetModel/<GUID>   the driver's deliveries
+// Reading is on by default (Yonatan, 29.10: the driver's link from the main system is the whole flow);
+// MAIN_READ=off turns it off. Lists typed in /office keep working either way (netlify/lib/source.mjs).
+// Reading:                 GET  /DeliveryList/GetModel/<GUID>   the driver's deliveries
 // Writing (also MAIN_WRITE=on):
 //   POST /DeliveryList/FinalizeSignature  signature, receiver name, package photo, receipt photo, amount paid.
 //                                         Also marks the customer's orders as Delivered.
@@ -17,9 +17,10 @@ export const MAIN_URL = 'https://abcmobile.shop';
 // MAIN_URL_OVERRIDE exists for tests against a mock address.
 export const base = () => (process.env.MAIN_URL_OVERRIDE || MAIN_URL).replace(/\/+$/, '');
 // on, true, yes or 1 (any case, spaces ignored)
-const on = k => ['on', 'true', 'yes', '1'].includes((process.env[k] || '').trim().toLowerCase());
-export const readsOn = () => on('MAIN_READ');
-export const writesOn = () => on('MAIN_READ') && on('MAIN_WRITE');
+const val = k => (process.env[k] || '').trim().toLowerCase();
+const on = k => ['on', 'true', 'yes', '1'].includes(val(k));
+export const readsOn = () => !['off', 'false', 'no', '0'].includes(val('MAIN_READ'));
+export const writesOn = () => readsOn() && on('MAIN_WRITE');
 
 // The GUID in the driver's link. The link itself is the access, as it is on the existing driver page.
 export const GUID = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;

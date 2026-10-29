@@ -8,7 +8,7 @@ import { readsOn, writesOn, base, GUID } from '../lib/abc.mjs';
 export default async req => {
   const keys = Object.fromEntries(['SUPABASE_URL', 'SUPABASE_SECRET_KEY', 'ADMIN_CODE']
     .map(k => [k, !!process.env[k] || (k === 'SUPABASE_SECRET_KEY' && !!process.env.SUPABASE_SERVICE_ROLE_KEY)]));
-  keys.MAIN_READ = process.env.MAIN_READ ? (readsOn() ? 'on' : `set but not "on" (${String(process.env.MAIN_READ).slice(0, 10)})`) : false;
+  keys.MAIN_READ = readsOn() ? (process.env.MAIN_READ ? 'on' : 'on (default)') : 'off';
   let tables = null, error = null;
   try {
     const [lists, tasks, results] = await Promise.all([select('driver_lists', 'select=guid'), select('driver_tasks', 'select=id'), select('driver_results', 'select=delivery_id')]);

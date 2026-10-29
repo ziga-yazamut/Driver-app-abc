@@ -2,7 +2,7 @@
 
 The driver's phone app for delivery day, plus a small office page. It is built like the ABC catalog: a static app and Netlify functions, with Supabase for the app's own data (results, photos).
 
-**The main system (abcmobile) is not connected yet.** Until it is, the office types each driver's deliveries in `/office` and sends the driver the link. The connection comes last, with two switches and no new code in abcmobile (see [Connecting the main system](#connecting-the-main-system)).
+**The app reads the main system (abcmobile), and writes nothing to it.** The driver opens the same link the main system already sends (`/d/<GUID>`, or `/DeliveryList/Single/<GUID>` on this site). Writing back stays off until `MAIN_WRITE=on` (see [Connecting the main system](#connecting-the-main-system)). `/office` is a view-only results page.
 
 ## What the driver does
 
@@ -57,8 +57,8 @@ The app uses only the driver-link endpoints that abcmobile already has, in `Mobi
 
 | Switch | What it does |
 |---|---|
-| `MAIN_READ=on` | Deliveries come from `GET /DeliveryList/GetModel/<GUID>`, the same GUID as the existing driver link, instead of `/office`. Read only. |
-| `MAIN_WRITE=on` (needs `MAIN_READ` too) | A finished delivery also goes to `FinalizeSignature` (signature, receiver name, package photo, amount paid), which **marks the customer's orders as Delivered**, and then to `SetCompleted`. The driver's order goes to `SetPositions`, the rules to `SetPreCheck` (1 = checks, 2 = packages), and "Close the day" to `NotifyOffice`, which sends a WhatsApp to the office. |
+| `MAIN_READ` (on unless set to `off`) | Deliveries come from `GET /DeliveryList/GetModel/<GUID>`, the same GUID as the existing driver link. Read only. |
+| `MAIN_WRITE=on` (off by default; ignored when `MAIN_READ=off`) | A finished delivery also goes to `FinalizeSignature` (signature, receiver name, package photo, amount paid), which **marks the customer's orders as Delivered**, and then to `SetCompleted`. The driver's order goes to `SetPositions`, the rules to `SetPreCheck` (1 = checks, 2 = packages), and "Close the day" to `NotifyOffice`, which sends a WhatsApp to the office. |
 
 **Not in the main system yet**, so it stays in Supabase only:
 - the payment method of each line
