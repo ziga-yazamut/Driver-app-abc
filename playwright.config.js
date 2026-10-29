@@ -3,7 +3,7 @@
 const { defineConfig } = require('@playwright/test');
 module.exports = defineConfig({
   timeout: 30000,
-  reporter: [['list']],
+  reporter: process.env.CI ? [['list'], ['github']] : [['list']],   // github: failures show as annotations on the run
   use: {
     launchOptions: process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {},
   },
