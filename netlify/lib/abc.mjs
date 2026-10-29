@@ -15,8 +15,9 @@
 
 export const MAIN_URL = 'https://abcmobile.shop';
 // MAIN_URL_OVERRIDE exists for tests against a mock address.
-const base = () => (process.env.MAIN_URL_OVERRIDE || MAIN_URL).replace(/\/+$/, '');
-const on = k => (process.env[k] || '').toLowerCase() === 'on';
+export const base = () => (process.env.MAIN_URL_OVERRIDE || MAIN_URL).replace(/\/+$/, '');
+// on, true, yes or 1 (any case, spaces ignored)
+const on = k => ['on', 'true', 'yes', '1'].includes((process.env[k] || '').trim().toLowerCase());
 export const readsOn = () => on('MAIN_READ');
 export const writesOn = () => on('MAIN_READ') && on('MAIN_WRITE');
 
