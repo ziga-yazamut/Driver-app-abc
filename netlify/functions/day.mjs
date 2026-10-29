@@ -5,7 +5,7 @@
 // With MAIN_WRITE=on the same thing also goes to the existing endpoints (SetPreCheck, SetPositions, NotifyOffice).
 import { json, handle } from '../lib/http.mjs';
 import { update, log } from '../lib/supa.mjs';
-import { setPreCheck, setPositions, notifyOffice } from '../lib/abc.mjs';
+import * as abc from '../lib/abc.mjs';
 import { getList } from '../lib/source.mjs';
 import { validGuid, ensureList, getResults } from '../lib/driver.mjs';
 
@@ -18,6 +18,9 @@ export default handle(async req => {
   await ensureList(list);
   const now = new Date().toISOString(), q = `guid=eq.${guid}`;
   let main = { skipped: true };
+  // Lists typed in /office never go to the main system
+  const skip = async () => ({ skipped: true });
+  const { setPreCheck, setPositions, notifyOffice } = list.from === 'main' ? abc : { setPreCheck: skip, setPositions: skip, notifyOffice: skip };
 
   if (action === 'accept') {
     await update('driver_lists', q, { accepted_at: now, updated_at: now });

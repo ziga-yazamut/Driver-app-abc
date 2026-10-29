@@ -1,4 +1,4 @@
-// The real driver app and office page, against test/devserver.mjs (fake Supabase, no main system).
+// The real driver app and office page, against test/devserver.mjs (fake Supabase and a fake, read-only main system).
 const { test, expect, devices } = require('@playwright/test');
 const path = require('path');
 const fs = require('fs');
@@ -212,4 +212,48 @@ test('office: the sample button works without a driver name', async ({ browser }
   await expect(page.locator('#link')).toContainText('/d/');
   await expect(page.locator('.mtable tbody tr')).toHaveCount(4);
   await expect(page.locator('h2').first()).toContainText('Sample driver');
+});
+
+test('main system, read only: the office opens a pasted driver link, the driver uses it, nothing is sent back', async ({ browser, request }) => {
+  test.skip(process.env.MAIN_READ === 'off', 'needs the fake main system');
+  const MAIN = 'aaaaaaaa-1111-4222-8333-bbbbbbbbbbbb', MASTER = 'cccccccc-1111-4222-8333-dddddddddddd';
+  const page = await (await browser.newContext({ viewport: { width: 1280, height: 900 } })).newPage();
+  await page.goto('/office');
+  await page.click('#lang-en');
+  await page.fill('#code', 'test'); await page.click('#go');
+  await expect(page.locator('.note')).toContainText('reading only');
+  await page.fill('#mainlink', 'nothing here');
+  await page.click('#openmain');
+  await expect(page.locator('#mainerr')).toContainText('No link code');
+  await page.fill('#mainlink', 'https://abcmobile.shop/DeliveryList/Single/00000000-0000-4000-8000-000000000000');
+  await page.click('#openmain');
+  await expect(page.locator('#mainerr')).toContainText('no deliveries');
+  // The "Manager" link of a sending lists its drivers
+  await page.fill('#mainlink', `Manager: https://abcmobile.shop/DeliveryList/Single/${MASTER}`);
+  await page.click('#openmain');
+  await page.click(`[data-g="${MAIN}"]`);
+  await expect(page.locator('.mtable tbody tr')).toHaveCount(2);
+  await expect(page.locator('.mtable')).toContainText('Main customer A');
+  await expect(page.locator('#af')).toHaveCount(0);
+  await expect(page.locator('.box h2').first()).toContainText('Main driver · 2025-10-27');
+
+  // The driver opens the main system's link with this site's address
+  const d = await (await browser.newContext()).newPage();
+  await d.route(/cdnjs|fonts\.g/, r => r.abort());
+  await d.goto('/DeliveryList/Single/' + MAIN);
+  await d.click('[data-lang="en"]');
+  for (const i of [0, 1, 2]) await d.check('#rule-' + i);
+  await d.click('#accept');
+  await expect(d.locator('.stop')).toHaveCount(2);
+  await expect(d.locator('.stop').first()).toContainText('Main customer A');
+  const list = await (await request.get('/api/list?guid=' + MAIN)).json();
+  expect(list.source).toBe('main');
+  expect(list.writes).toBe(false);
+  expect((await request.post('/api/finish', { data: { guid: MAIN, id: 501, result: { status: 'not_delivered', reason: 'address' } } })).status()).toBe(200);
+  expect(await (await request.get('/test/main-posts')).json()).toEqual([]);
+  // The office can't type deliveries into a main-system list
+  expect((await office(request, { op: 'add', guid: MAIN, task: { company: 'X' } })).status()).toBe(409);
+  // and it is now in the office's lists
+  const lists = await (await request.get('/api/office?code=test')).json();
+  expect(lists.lists.some(l => l.guid === MAIN && l.tasks === null)).toBe(true);
 });

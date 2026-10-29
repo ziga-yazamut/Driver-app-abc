@@ -62,7 +62,7 @@ export default handle(async req => {
   await upsert('driver_results', [row], { onConflict: 'delivery_id' });
 
   let main = 'off';
-  if (writesOn() && delivered) {
+  if (writesOn() && delivered && list.from === 'main') {
     try {
       const b64 = async p => p ? (await downloadObject(BUCKET, p)).toString('base64') : '';
       const f = await finalize({ id, name: row.receiver_name, signatureB64: await b64(row.signature_path), packageB64: await b64(row.package_paths[0]), amountPaid });

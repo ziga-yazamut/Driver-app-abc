@@ -7,12 +7,13 @@
 // POST /api/office {code, op:'edit', id, task}               change a delivery that has no result yet
 // POST /api/office {code, op:'remove', id}                   remove a delivery that has no result yet
 // POST /api/office {code, op:'removeList', guid}             remove a list that has no results
-// Typing deliveries is only for until the main system is connected (MAIN_READ=on); then they come from there.
+// The office can type test lists also while the main system is read (MAIN_READ=on): both work side by side.
+// Opening a main-system GUID here adds it to the lists.
 import { json, handle } from '../lib/http.mjs';
 import { select, insert, update, remove } from '../lib/supa.mjs';
 import { readsOn, writesOn } from '../lib/abc.mjs';
 import { getList } from '../lib/source.mjs';
-import { validGuid, validId, withLinks } from '../lib/driver.mjs';
+import { validGuid, validId, withLinks, ensureList } from '../lib/driver.mjs';
 
 const txt = (v, n = 200) => String(v ?? '').trim().slice(0, n);
 const taskRow = t => ({
@@ -42,34 +43,35 @@ export default handle(async req => {
   const code = req.method === 'POST' ? body.code : url.searchParams.get('code');
   if (!process.env.ADMIN_CODE) return json({ error: 'not_configured', message: 'ADMIN_CODE is missing in Netlify environment variables' }, 503);
   if (!(await allowed(code))) return json({ error: 'forbidden' }, 403);
-  const typing = !readsOn();
+  const main = readsOn();
 
   if (req.method === 'GET') {
     const guid = url.searchParams.get('guid');
     if (guid) {
       if (!validGuid(guid)) return json({ error: 'bad_request' }, 400);
       const list = await getList(guid);
-      if (!list || list.master) return json({ error: 'not_found' }, 404);
+      if (!list) return json({ error: 'not_found' }, 404);
+      if (list.master) return json({ master: true, people: list.people.map(p => ({ person: p.person, guid: p.guid, count: p.tasks.length })) }, 200, { 'Cache-Control': 'no-store' });
+      if (list.from === 'main') await ensureList(list);
       const rows = list.tasks.length ? await select('driver_results', `select=*&delivery_id=in.(${list.tasks.map(t => t.id).join(',')})`) : [];
       const results = Object.fromEntries(await Promise.all(rows.map(async r => [r.delivery_id, await withLinks(r)])));
       const [day] = await select('driver_lists', `select=accepted_at,closed_at,order_ids&guid=eq.${guid}`);
-      return json({ ...list, day: day || null, results, typing }, 200, { 'Cache-Control': 'no-store' });
+      return json({ ...list, day: day || null, results, typing: list.from === 'office', main }, 200, { 'Cache-Control': 'no-store' });
     }
     const lists = await select('driver_lists', 'select=guid,person,list_date,accepted_at,closed_at,updated_at&order=updated_at.desc&limit=60', { pageSize: 60 });
     const guids = lists.map(l => l.guid);
     const [tasks, results] = guids.length ? await Promise.all([
-      typing ? select('driver_tasks', `select=guid&guid=in.(${guids.join(',')})`) : [],
+      select('driver_tasks', `select=guid&guid=in.(${guids.join(',')})`),
       select('driver_results', `select=guid,status&guid=in.(${guids.join(',')})`),
     ]) : [[], []];
     const count = (a, g, f = () => true) => a.filter(x => x.guid === g && f(x)).length;
     return json({
-      typing, mainWrite: writesOn(),
-      lists: lists.map(l => ({ ...l, tasks: typing ? count(tasks, l.guid) : null, delivered: count(results, l.guid, r => r.status === 'delivered'), failed: count(results, l.guid, r => r.status === 'not_delivered') })),
+      typing: true, main, mainWrite: writesOn(),
+      lists: lists.map(l => ({ ...l, tasks: count(tasks, l.guid) || (main ? null : 0), delivered: count(results, l.guid, r => r.status === 'delivered'), failed: count(results, l.guid, r => r.status === 'not_delivered') })),
     }, 200, { 'Cache-Control': 'no-store' });
   }
 
   const { op } = body;
-  if (!typing && op !== 'removeList') return json({ error: 'main_connected', message: 'Deliveries come from the main system now' }, 409);
   if (op === 'create' || op === 'sample') {
     const person = txt(body.person, 60);
     if (!person) return json({ error: 'person_required' }, 400);
@@ -81,6 +83,7 @@ export default handle(async req => {
   }
   if (op === 'add') {
     if (!validGuid(body.guid) || !body.task?.company) return json({ error: 'bad_request' }, 400);
+    if ((await getList(body.guid))?.from !== 'office') return json({ error: 'main_list', message: 'This list comes from the main system' }, 409);
     const n = (await select('driver_tasks', `select=id&guid=eq.${body.guid}`)).length;
     await insert('driver_tasks', { guid: body.guid, position: n, ...taskRow(body.task) });
     return json({ ok: true });

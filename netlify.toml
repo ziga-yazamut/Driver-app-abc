@@ -14,6 +14,12 @@
   to = "/index.html"
   status = 200
 
+# The main system's driver link with this site's address instead also opens the app
+[[redirects]]
+  from = "/DeliveryList/Single/*"
+  to = "/index.html"
+  status = 200
+
 [[redirects]]
   from = "/office"
   to = "/office.html"

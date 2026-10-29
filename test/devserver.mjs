@@ -13,6 +13,29 @@ const BASE = `http://localhost:${PORT}`;
 process.env.SUPABASE_URL ||= `${BASE}/sb`;
 process.env.SUPABASE_SECRET_KEY ||= 'test-secret';
 process.env.ADMIN_CODE ||= 'test';
+// A fake main system, read only, side by side with the office lists (MAIN_READ=off with no fake: MAIN_READ=off node test/devserver.mjs)
+process.env.MAIN_READ ??= 'on';
+process.env.MAIN_URL_OVERRIDE ||= `${BASE}/main`;
+
+/* ---------- fake main system (abcmobile) ---------- */
+export const MAIN_GUID = 'aaaaaaaa-1111-4222-8333-bbbbbbbbbbbb';
+export const MASTER_GUID = 'cccccccc-1111-4222-8333-dddddddddddd';
+const mainPosts = [];
+const mainTask = (id, company, total, boxes, pos) => ({ DeliveryGUIDId: id, GUID: MAIN_GUID, Company: company, City: 'Petah Tikva', Address: '1 Main St.', PhoneNumber: '050-1111111',
+  Total: total, Paid: 0, PaymentTerms: 'Cash', TotalPackages: boxes, Completed: false, Position: pos, DeliveryComment: '', IsFirstOrder: false, VATNumber: '', DeliveryPerson: 'Main driver', CreationDate: '/Date(1761552000000)/' });
+function mainSystem(req, res, url) {
+  if (req.method !== 'GET') { mainPosts.push(url.pathname); res.writeHead(200); return res.end('{}'); }
+  const m = /^\/main\/DeliveryList\/GetModel\/(.+)$/.exec(url.pathname);
+  if (m && m[1] === MAIN_GUID) {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ GUID: MAIN_GUID, DeliveryPerson: 'Main driver', ListDate: '27/10/2026', Tasks: [mainTask(501, 'Main customer A', 300, 1, 0), mainTask(502, 'Main customer B', 0, 2, 1)] }));
+  }
+  if (m && m[1] === MASTER_GUID) {   // the "Manager" link: every driver of one sending
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ IsMasterLink: true, PersonalModels: { 'Main driver': { GUID: MAIN_GUID, Tasks: [mainTask(501, 'Main customer A', 300, 1, 0), mainTask(502, 'Main customer B', 0, 2, 1)] } } }));
+  }
+  res.writeHead(500); res.end('Index was out of range');   // what the main system does for an unknown GUID
+}
 
 /* ---------- fake Supabase ---------- */
 export const db = { driver_lists: [], driver_tasks: [], driver_results: [], app_log: [] };
@@ -119,13 +142,15 @@ const server = http.createServer(async (req, res) => {
       const ct = req.headers['content-type'] || '';
       return await supabase(req, res, url, ct.includes('json') && raw.length ? JSON.parse(raw) : raw);
     }
+    if (url.pathname.startsWith('/main/')) return mainSystem(req, res, url);
+    if (url.pathname === '/test/main-posts') { res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify(mainPosts)); }
     if (routes[url.pathname]) {
       const r = await routes[url.pathname](new Request(url, { method: req.method, headers: req.headers, body: ['GET', 'HEAD'].includes(req.method) ? undefined : raw }), {});
       res.writeHead(r.status, Object.fromEntries(r.headers));
       return res.end(Buffer.from(await r.arrayBuffer()));
     }
     let file = url.pathname === '/' ? '/index.html' : url.pathname;
-    if (/^\/d\//.test(file)) file = '/index.html';
+    if (/^\/(d|DeliveryList\/Single)\//.test(file)) file = '/index.html';
     if (file === '/office') file = '/office.html';
     const data = await readFile(path.join(root, 'public', path.normalize(file).replace(/^(\.\.[/\\])+/, '')));
     res.writeHead(200, { 'Content-Type': TYPES[path.extname(file)] || 'application/octet-stream' });

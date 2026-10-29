@@ -53,7 +53,8 @@ export function mapTask(t) {
 
 function mapList(m, guid) {
   const tasks = (m.Tasks || []).map(mapTask);
-  return { guid: m.GUID || guid, person: m.DeliveryPerson || '', date: m.ListDate || '', tasks };
+  // ListDate is in the server's local format; the first delivery's creation date is unambiguous
+  return { guid: m.GUID || guid, person: m.DeliveryPerson || '', date: tasks[0]?.created?.slice(0, 10) || m.ListDate || '', tasks };
 }
 
 // A master link holds several drivers; each has his own GUID inside (Tasks[0].GUID).

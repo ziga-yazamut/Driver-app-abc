@@ -1,9 +1,9 @@
-// GET /api/list?guid=<GUID>: the driver's deliveries from the main system (read only),
+// GET /api/list?guid=<GUID>: the driver's deliveries (typed in /office, or read from the main system),
 // with what the app saved: the day (rules confirmed, the driver's order, day closed) and each finished delivery.
 // A master link (several drivers) returns the drivers to pick from.
 import { json, handle } from '../lib/http.mjs';
 import { writesOn } from '../lib/abc.mjs';
-import { getList, source } from '../lib/source.mjs';
+import { getList } from '../lib/source.mjs';
 import { validGuid, getDay, getResults, summary } from '../lib/driver.mjs';
 
 export default handle(async req => {
@@ -18,8 +18,8 @@ export default handle(async req => {
     ...list,
     day: day ? { accepted_at: day.accepted_at, order: day.order_ids || [], closed_at: day.closed_at } : null,
     results,
-    source: source(),
-    writes: writesOn(),
+    source: list.from,
+    writes: writesOn() && list.from === 'main',
   }, 200, { 'Cache-Control': 'no-store' });
 });
 

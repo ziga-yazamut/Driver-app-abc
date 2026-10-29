@@ -140,7 +140,7 @@ const isNet=e=>!e.status; // fetch threw: no signal (or the server is unreachabl
 
 /* ---------- state ---------- */
 const phone=document.getElementById("phone");
-const guid=(location.pathname.match(/\/d\/([0-9a-fA-F-]{36})/)||[])[1]||qs.get("g")||"";
+const guid=(location.pathname.match(/\/(?:d|DeliveryList\/Single)\/([0-9a-fA-F-]{36})/)||[])[1]||qs.get("g")||"";
 let L=null;          // {guid, person, date, tasks, day, results, writes}
 let order=[], drafts={}, outbox={}, accepted=false, closedAt=null, checksOk=[false,false,false];
 let open=null, draft=null, cachedView=false;

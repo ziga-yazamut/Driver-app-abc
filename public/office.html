@@ -52,7 +52,8 @@ const S={
  check:{en:"Check",he:"שיק"}, cash:{en:"Cash",he:"מזומן"}, credit:{en:"Credit",he:"אשראי"}, rma:{en:"Returns",he:"חזרות"},
  accepted:{en:"Rules confirmed {0}",he:"אישר נהלים {0}"}, closed:{en:"Day closed {0}",he:"היום נסגר {0}"},
  mainOff:{en:"Not connected to the main system yet: nothing is sent there.",he:"עדיין לא מחובר למערכת הראשית: שום דבר לא נשלח לשם."},
- fromMain:{en:"Deliveries come from the main system.",he:"המסירות מגיעות מהמערכת הראשית."},
+ fromMain:{en:"Connected to the main system for reading only: nothing is sent there.",he:"מחובר למערכת הראשית לקריאה בלבד: שום דבר לא נשלח לשם."},
+ openMain:{en:"Open a driver link from the main system",he:"פתיחת קישור נהג מהמערכת הראשית"}, pasteLink:{en:"Paste the link the driver got on WhatsApp",he:"הדבק את הקישור שהנהג קיבל בוואטסאפ"}, open2:{en:"Open",he:"פתח"}, badLink:{en:"No link code found in this text.",he:"לא נמצא קוד קישור בטקסט הזה."}, notFound:{en:"The main system has no deliveries for this link.",he:"במערכת הראשית אין מסירות לקישור הזה."}, pick:{en:"This link has several drivers:",he:"בקישור הזה כמה נהגים:"}, fromMainList:{en:"From the main system (read only)",he:"מהמערכת הראשית (קריאה בלבד)"},
  reasons:{en:{absent:"Customer not there",refused:"Customer refused",address:"Wrong address",damaged:"Damaged goods"},he:{absent:"הלקוח לא נמצא",refused:"הלקוח סירב",address:"כתובת שגויה",damaged:"סחורה פגומה"}},
  diffs:{en:{later:"Will pay the rest later",discount:"Approved discount",dispute:"Disputes the goods",debt:"Previous balance",order:"Order mistake"},he:{later:"ישלים בהמשך",discount:"הנחה מאושרת",dispute:"מחלוקת על הסחורה",debt:"יתרה קודמת",order:"טעות בהזמנה"}},
  hasResult:{en:"This delivery already has a result.",he:"למסירה הזו כבר יש תוצאה."},
@@ -92,10 +93,16 @@ async function render(){
 async function renderLists(){
   const j=await api("/api/office?code="+encodeURIComponent(code));
   const today=new Date(Date.now()+3*3600e3).toISOString().slice(0,10);
-  app.innerHTML=`<p class="note">${j.typing?t("mainOff"):t("fromMain")}</p>
+  app.innerHTML=`<p class="note">${j.main?t("fromMain"):t("mainOff")}</p>
+  ${j.main?`<div class="box"><h2>${t("openMain")}</h2><div class="form"><label class="fld">${t("pasteLink")}<input type="text" id="mainlink" dir="ltr" placeholder="https://abcmobile.shop/DeliveryList/Single/…"></label><button class="btn small2" id="openmain">${t("open2")}</button></div><p id="mainerr" style="margin:0;color:var(--bad)"></p></div>`:""}
   ${j.typing?`<div class="box"><h2>${t("newList")}</h2><div class="form"><label class="fld">${t("driver")}<input type="text" id="person" required></label><label class="fld">${t("date")}<input type="date" id="date" value="${today}"></label><button class="btn small2" id="create">${t("create")}</button></div><p id="mkerr" style="margin:0;color:var(--bad)"></p></div>`:""}
   <div class="box"><h2>${t("lists")}</h2><div class="lists">${j.lists.length?j.lists.map(l=>`<button class="li" data-g="${esc(l.guid)}"><span><b>${esc(l.person)}</b> · ${esc(l.list_date)}</span><span class="sub">${t("count",l.tasks??"–",l.delivered,l.failed)}</span></button>`).join(""):`<p class="sub">${t("none")}</p>`}</div></div>`;
   app.querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>{view=b.dataset.g;render()});
+  if(j.main)app.querySelector("#openmain").onclick=async e=>{const m=/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i.exec(app.querySelector("#mainlink").value);const er=app.querySelector("#mainerr");
+    if(!m){er.textContent=t("badLink");return}
+    e.target.disabled=true;er.textContent="";
+    try{await api(`/api/office?code=${encodeURIComponent(code)}&guid=${m[0].toLowerCase()}`);view=m[0].toLowerCase();render()}
+    catch(x){e.target.disabled=false;er.textContent=x.status===404?t("notFound"):t("mkFailed")+" ("+(x.status||"")+" "+x.message+")"}};
   const mk=async(op,b)=>{const pf=app.querySelector("#person");let person=pf.value.trim();if(op==="sample")person=t("sampleDriver");else if(!person){pf.focus();pf.reportValidity?.();return}
     b.disabled=true;const done=()=>{b.disabled=false};const e0=app.querySelector("#mkerr");e0.textContent="";
     try{const r=await api("/api/office",{op,person,date:app.querySelector("#date").value});done();view=r.guid;render()}
@@ -123,11 +130,13 @@ function photoCell(r){if(!r||r.status!=="delivered")return "";
 
 async function renderList(g){
   const j=await api(`/api/office?code=${encodeURIComponent(code)}&guid=${g}`);
+  if(j.master){app.innerHTML=`<button class="small" id="back" style="align-self:flex-start">${t("back")}</button><div class="box"><h2>${t("pick")}</h2><div class="lists">${j.people.map(p=>`<button class="li" data-g="${esc(p.guid)}"><b>${esc(p.person)}</b><span class="sub">${p.count}</span></button>`).join("")}</div></div>`;
+    app.querySelector("#back").onclick=()=>{view=null;render()};app.querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>{view=b.dataset.g;render()});return}
   const link=`${location.origin}/d/${g}`;
   const done=id=>!!j.results[id];
   app.innerHTML=`<button class="small" id="back" style="align-self:flex-start">${t("back")}</button>
   <div class="box"><h2>${esc(j.person)} · ${esc(j.date)}</h2>
-    <div class="sub">${j.day&&j.day.accepted_at?t("accepted",hhmm(j.day.accepted_at)):""}${j.day&&j.day.closed_at?" · "+t("closed",hhmm(j.day.closed_at)):""}</div>
+    <div class="sub">${j.typing?"":t("fromMainList")+" · "}${j.day&&j.day.accepted_at?t("accepted",hhmm(j.day.accepted_at)):""}${j.day&&j.day.closed_at?" · "+t("closed",hhmm(j.day.closed_at)):""}</div>
     <label class="fld">${t("link")}<div class="link" id="link">${esc(link)}</div></label>
     <div class="row"><button class="chip" id="copy">${t("copy")}</button><a class="chip" style="text-decoration:none" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(t("waText",j.person,link))}">${t("wa")}</a></div></div>
   <div class="box"><div class="cards" style="border:0"><table class="mtable"><thead><tr><th>${t("company")}</th><th>${t("total")}</th><th>${t("status")}</th><th>${t("payment")}</th><th>${t("photos")}</th>${j.typing?"<th></th>":""}</tr></thead><tbody>
