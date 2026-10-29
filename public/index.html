@@ -331,7 +331,11 @@ function renderStop(){const d=byId(open);const steps=wizSteps(d);if(draft.step>=
   if(k==="rma"){$("#rma-note").oninput=e=>{draft.rmaNote=e.target.value;saveDraft()}}
 }
 function refreshNext(){const d=byId(open);const k=wizSteps(d)[draft.step];const n=phone.querySelector("#next");if(n)n.disabled=!stepOk(d,k)}
-function keepScroll(fn){const y=window.scrollY;fn();window.scrollTo(0,y)}
+// Re-render in place: keep the scroll and the field being typed in (a photo can finish while the driver types)
+function keepScroll(fn){const y=window.scrollY,a=document.activeElement,sel=a&&a.dataset&&a.dataset.f?`[data-l="${a.dataset.l}"][data-f="${a.dataset.f}"]`:a&&a.id&&a.tagName==="INPUT"?"#"+CSS.escape(a.id):null;
+  let pos=null;try{pos=a.selectionStart}catch(e){}
+  fn();window.scrollTo(0,y);
+  const n=sel&&phone.querySelector(sel);if(n&&n!==a){n.focus({preventScroll:true});try{if(pos!=null)n.setSelectionRange(pos,pos)}catch(e){}}}
 function initSig(){const c=phone.querySelector("#sig");const r=c.getBoundingClientRect(),dpr=window.devicePixelRatio||1;c.width=r.width*dpr;c.height=r.height*dpr;const x=c.getContext("2d");x.scale(dpr,dpr);x.lineWidth=2.5;x.lineCap="round";x.strokeStyle="#17211d";
   if(draft.sig){const im=new Image();im.onload=()=>x.drawImage(im,0,0,r.width,r.height);im.src=draft.sig}
   let down=false;const p=e=>{const b=c.getBoundingClientRect();return[e.clientX-b.left,e.clientY-b.top]};

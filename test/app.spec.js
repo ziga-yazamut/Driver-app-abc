@@ -56,6 +56,7 @@ test('driver: rules gate, delivery with a check, saved with photos', async ({ pa
   await page.click('[data-add="check"]');
   await expect(page.locator('#next')).toBeDisabled();
   await page.setInputFiles('#lp-0', PHOTO);
+  await expect(page.locator('.pl-ph img')).toHaveCount(1);   // the photo is processed before typing on
   for (const [f, v] of [['checkNum', '1000001'], ['bank', '10'], ['branch', '647'], ['account', '01234567']]) await page.fill(`[data-l="0"][data-f="${f}"]`, v);
   await expect(page.locator('#next')).toBeDisabled();
   await page.fill('[data-l="0"][data-f="dueDate"]', '2026-12-01');
@@ -83,6 +84,7 @@ test('driver: paying less needs a reason', async ({ page, request }) => {
   await step1(page, 1, 'Ronit'); // 890 to collect
   await page.click('[data-add="cash"]');
   await page.setInputFiles('#lp-0', PHOTO);
+  await expect(page.locator('.pl-ph img')).toHaveCount(1);   // the photo is processed before typing on
   await page.fill('[data-l="0"][data-f="amount"]', '500');
   await expect(page.locator('#next')).toBeDisabled();
   await page.click('[data-diff="later"]');
