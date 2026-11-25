@@ -1,8 +1,8 @@
 # ABC Driver App
 
-The driver's phone app for delivery day, plus a small office page. It is built like the ABC catalog: a static app and Netlify functions, with Supabase for the app's own data (results, photos).
+The driver's phone app for delivery day. It is a static app and Netlify functions.
 
-**The app reads the main system (abcmobile), and writes nothing to it.** The driver opens the same link the main system already sends (`/d/<GUID>`, or `/DeliveryList/Single/<GUID>` on this site). Writing back stays off until `MAIN_WRITE=on` (see [Connecting the main system](#connecting-the-main-system)). `/office` is a view-only results page.
+**The main system (abcmobile.shop) is the app's only backend:** everything is read from it and saved to it. The driver opens the same link the main system already sends (`/d/<GUID>`, or `/DeliveryList/Single/<GUID>` on this site). The office sees the results in the main system (`#/Deliveries`).
 
 ## What the driver does
 
@@ -12,7 +12,7 @@ The driver opens `/d/<GUID>` from WhatsApp. There is nothing to install, and the
 2. **The list:** their deliveries for the day. They can drag ⋮⋮ to reorder them. The top strip shows the number of checks, the cash total and how many deliveries are done.
 3. **Each delivery takes up to three steps:**
    - **Delivery and signature:** the number of boxes, a package photo, an optional receipt photo, the customer's signature and the receiver's name. Or "did not take it", with a reason.
-   - **Payment:** only when there is something to collect. One or more lines, each a check (photo, number, bank, branch, account, due date), cash (photo) or credit (amount only). Collecting a different amount needs a reason.
+   - **Payment:** always shown; with nothing to collect it can be skipped. One or more lines, each a check (photo, number, bank, branch, account, due date), cash (photo) or credit (amount only). Collecting a different amount needs a reason.
    - **Returns:** optional photos and a note.
 4. **Day summary:** what goes in the checks and cash envelopes, and which packages go back. **Close the day** works only when every delivery is done.
 
@@ -20,70 +20,48 @@ The driver opens `/d/<GUID>` from WhatsApp. There is nothing to install, and the
 
 **Undo:** "My mistake, reopen" works for 10 minutes after finishing, and brings back the photos and signature.
 
-## What the office does (`/office`)
-
-The office page needs the office code (`ADMIN_CODE`). From it the office can:
-
-- Create a list for a driver and a date, then add, edit or remove deliveries. A delivery that already has a result is locked.
-- Copy the driver's link, or send it on WhatsApp.
-- See each result: status and time, the receiver, boxes, payment lines with check details, the reason for any difference, returns, and every photo.
-
-Photos are in a **private** bucket, because check photos carry bank details. They are shown only through links that expire after an hour.
+The `/office` page (lists typed by hand, results in Supabase) is **disabled**: its code is kept, not deployed, in `netlify/disabled/` (see the README there for how to turn it back on).
 
 The clickable mockup is still at `/mockup.html`.
 
 ## Setup (once)
 
-1. **Supabase.** Use the catalog's project or a new one. Open SQL Editor → New query, paste `supabase/schema.sql` and click Run. It is safe to run again.
-2. **Netlify:**
-   1. Add new project → Import from Git → `ziga-yazamut/Driver-app-abc`. The build settings come from `netlify.toml`.
-   2. Under Site configuration → Environment variables, add:
+1. Netlify: Add new project → Import from Git → `ziga-yazamut/Driver-app-abc`. The build settings come from `netlify.toml`. No environment variables are needed.
+2. The main system must have the driver-app endpoints and columns below (deploy the abcmobile changes first).
 
-      | Variable | Where it comes from |
-      |---|---|
-      | `SUPABASE_URL` | Supabase → Project Settings → Data API → Project URL |
-      | `SUPABASE_SECRET_KEY` | Supabase → Project Settings → API Keys → Secret key |
-      | `ADMIN_CODE` | A code you choose, for `/office` |
+To check the connection, open `/api/status?guid=<GUID>`. It shows the main system's address and what it answers for that link (counts only).
 
-   3. Deploys → Trigger deploy. New variables take effect only on the next deploy.
+## The main system
 
-To check the setup, open `/api/status`. It shows which keys are set (yes or no only), where deliveries come from, and whether the tables exist.
+The app uses the driver-link endpoints in abcmobile's `MobileParts/Controllers/DeliveryListController.cs`. All of it is in `netlify/lib/abc.mjs`; its address is `MAIN_URL` there (`MAIN_URL_OVERRIDE` in the environment wins over it, e.g. `http://localhost:48289` for a local copy). There is no switch to stop reading or writing: everything the driver does changes real data in the main system.
 
-**No key is stored in the code or the repository.**
-
-## Connecting the main system
-
-The app uses only the driver-link endpoints that abcmobile already has, in `MobileParts/Controllers/DeliveryListController.cs`. All of it is in `netlify/lib/abc.mjs`.
-
-| Switch | What it does |
+| | What |
 |---|---|
-| `MAIN_READ` (on unless set to `off`) | Deliveries come from `GET /DeliveryList/GetModel/<GUID>`, the same GUID as the existing driver link. Read only. |
-| `MAIN_WRITE=on` (off by default; ignored when `MAIN_READ=off`) | A finished delivery also goes to `FinalizeSignature` (signature, receiver name, package photo, amount paid), which **marks the customer's orders as Delivered**, and then to `SetCompleted`. The driver's order goes to `SetPositions`, the rules to `SetPreCheck` (1 = checks, 2 = packages), and "Close the day" to `NotifyOffice`, which sends a WhatsApp to the office. |
+| Reading | Deliveries come from `GET /DeliveryList/GetModel/<GUID>`, the same GUID as the existing driver link. It also gives the start-of-day rules (`PreCheck1`-`3`), the day closed (`DayClosed`) and, in `Results`, everything saved for each delivery with its payments; the app shows finished stops from it and fills a reopened stop's steps from it. |
+| Writing | A delivered stop goes to `ConfirmPackage`, then `FinalizeDelivery`, then `SetCompleted`. A stop that was not delivered goes to `FinalizeDelivery`, then `SetCompleted` (`FailedDelivery` tells them apart). The driver's order goes to `SetPositions`, the three rules to `SetPreCheck` 1-3, "Reopen" to `ReopenDelivery`, and "Close the day" to `NotifyOffice`, which sets `DayClosed` and sends a WhatsApp to the office. |
 
-**Not in the main system yet**, so it stays in Supabase only:
-- the payment method of each line
-- check details and photos
-- cash photos
-- the reason for a difference
-- boxes delivered
-- "not delivered" and its reason
-- returns (RMA)
+`FinalizeDelivery` (the app never calls `FinalizeSignature`, which stays as it is for the old driver page):
+- calls `FinalizeSignature` for a delivered stop: signature, receiver name, package photo, receipt photo, amount paid (= the sum of the driver's payment lines). This **marks the customer's orders as Delivered**.
+- saves each payment in `PaymentsCustomersWeek` with `DeliveryGUIDId` (which also marks it as coming from the driver app), `MethodType` `CHECK`, `CASH` or `CC`, and `Approved = false` when it is new or its details changed. The check or cash photo is saved as `/DeliverySignatures/DeliverySignature_ChequePicture<n>_<id>.jpg` or `..._CashPicture<n>_<id>.jpg` (in `PaymentPhoto`). The check's account number, holder name and holder ID have no columns and go into `Comment` (`Account 1, Holder X, Holder ID 2`).
+- saves `BoxDelivered`, `DifferenceReason`, `FailedDelivery`, `FailedDeliveryReason`, `ReturnComment` and the returns photo (`/DeliverySignatures/Returns/ReturnPicture_<id>.jpg`, in `ReturnPhoto`) in `DeliveryGuids`.
+- finishing the same delivery again (a retry, or after "Reopen") updates instead of adding: the delivery's payments are matched to the ones sent (by `paymentId`, else in order) and updated, new ones are added, and the delivery's payments that were not sent are deleted. A photo that is not sent keeps the saved one.
 
-**Known bug in abcmobile:** `FinalizeSignature` saves the receipt photo into `DeliveryPackagePhoto`, over the package photo. The app therefore sends the package photo only, and keeps the receipt in Supabase.
+`ReopenDelivery` ("My mistake, reopen"): the delivery is no longer completed and the day no longer closed. Nothing is deleted. The app fills the steps from what was saved; a reopened stop keeps its saved signature and photos unless the driver replaces them.
+
+The app takes one photo of each kind per delivery (package, receipt, returns, one per payment line). On the phone, every photo is made to fit 1600x1600 (only made smaller, never larger) and saved as JPEG at 80% (`IMG_MAX` and `IMG_QUALITY` in `public/index.html`), when it's taken and again right before sending. The app sends `noResize: true`, so the main system saves the photos exactly as received (`SaveImage(..., NoResize: true)`) instead of resizing them to 1920 px and saving them again; the old driver page doesn't send it and is unchanged. The signature is not changed: it is sent as drawn, as PNG, and the main system saves it as it is.
 
 ## Code
 
 | Path | What it is |
 |---|---|
 | `public/index.html` | The driver app |
-| `public/office.html` | The office page |
 | `public/app.css` | Shared styles (also used by the mockup) |
-| `netlify/functions/` | `list`, `day`, `photo`, `finish`, `undo`, `result`, `office`, `status` (each file's first lines describe it) |
-| `netlify/lib/abc.mjs` | The main system: read and write, each behind its switch |
-| `netlify/lib/source.mjs` | Where deliveries come from: `/office` or the main system |
-| `netlify/lib/supa.mjs` | Supabase REST, copied from the catalog |
-| `supabase/schema.sql` | The tables and the private photo bucket |
-| `test/devserver.mjs` | A local stand-in for Netlify and Supabase |
+| `netlify/functions/` | `list`, `day`, `finish`, `undo`, `result`, `status` (each file's first lines describe it) |
+| `netlify/lib/abc.mjs` | The main system: its address, reading and writing |
+| `netlify/lib/source.mjs` | The driver's list from the main system |
+| `netlify/disabled/` | Not deployed: the `/office` page and API, `/api/photo` and the Supabase client |
+| `supabase/schema.sql` | The Supabase tables the disabled `/office` page used |
+| `test/devserver.mjs` | A local stand-in for Netlify and Supabase (written for the old Supabase flow) |
 | `mockup/` | The clickable mockup |
 | `ocr/` | An earlier draft, not used |
 
@@ -91,6 +69,12 @@ The app uses only the driver-link endpoints that abcmobile already has, in `Mobi
 
 ```bash
 npm install
-npm run dev     # http://localhost:8888/office (code: test). No accounts needed; data is kept in memory.
-npm test        # the main-system client (node --test), then the app, office and mockup in Chromium (Playwright)
+netlify dev --offline   # the app at http://localhost:8888/d/<GUID>, against MAIN_URL (live data!) or MAIN_URL_OVERRIDE
+node --test test/       # the main-system client
+```
+
+The Playwright tests (`test/app.spec.js`, run by `npm test`) and `npm run dev` (`test/devserver.mjs`) were written for the old Supabase flow and the `/office` page; they need rewriting for the main-system flow.
+
+```bash
+npm test        # node --test, then Playwright (the app and office tests are out of date)
 ```

@@ -94,7 +94,8 @@ const S={
  full:{en:"Paid in full",he:"הסכום מלא"}, short:{en:"{0} missing",he:"חסר {0}"}, over:{en:"{0} extra",he:"עודף {0}"},
  dupHere:{en:"Check {0} is already on this delivery.",he:"שיק {0} כבר רשום במסירה הזו."},
  dupOther:{en:"Check {0} was already taken today at {1}.",he:"שיק {0} כבר נלקח היום אצל {1}."},
- remove:{en:"Remove",he:"הסר"}, photographed:{en:"Photographed",he:"צולם"}, photoOf:{en:"Photograph the {0}",he:"צלם {0}"},
+ remove:{en:"Remove",he:"הסר"}, photographed:{en:"Photographed",he:"צולם"}, savedPhoto:{en:"Saved",he:"שמור"}, stillSending:{en:"Still sending this delivery. Try again in a moment.",he:"המסירה עדיין נשלחת. נסו שוב בעוד רגע."},
+ savedSig:{en:"Saved signature. Sign below only to replace it.",he:"חתימה שמורה. חתמו למטה רק כדי להחליף אותה."}, photoOf:{en:"Photograph the {0}",he:"צלם {0}"},
  fCheckNum:{en:"Check no.",he:"מס' שיק"}, fBank:{en:"Bank",he:"בנק"}, fBranch:{en:"Branch",he:"סניף"}, fAccount:{en:"Account",he:"חשבון"}, fDrawer:{en:"Account holder (optional)",he:"בעל החשבון (לא חובה)"}, fDrawerId:{en:"ID / company no. (optional)",he:"ת.ז / ח.פ (לא חובה)"},
  dueDate:{en:"Due date",he:"תאריך פירעון"},
  undo:{en:"My mistake, reopen (up to 10 minutes after closing)",he:"טעיתי, לפתוח מחדש (עד 10 דקות מהסגירה)"},
@@ -130,11 +131,23 @@ async function idb(store,mode,fn){const db=await DB;return new Promise((ok,no)=>
 const kv={get:(st,k)=>idb(st,"readonly",s=>s.get(k)),put:(st,k,v)=>idb(st,"readwrite",s=>s.put(v,k)),del:(st,k)=>idb(st,"readwrite",s=>s.delete(k)),
   all:async st=>{const db=await DB;return new Promise((ok,no)=>{const out={};const tx=db.transaction(st,"readonly");const c=tx.objectStore(st).openCursor();c.onsuccess=()=>{const x=c.result;if(x){out[x.key]=x.value;x.continue()}};tx.oncomplete=()=>ok(out);tx.onerror=()=>no(tx.error)})}};
 
+// The outbox is keyed by the delivery id as a number. An earlier version deleted sent deliveries by the id as text,
+// which removed nothing, so they were sent again on every reload (and undid "reopen"); failed sends also left a
+// text-keyed copy. Removes those: every text-keyed entry, and every job identical to the copy kept after it was sent.
+async function cleanOutbox(){try{const db=await DB;
+  const rows=await new Promise((ok,no)=>{const out=[];const tx=db.transaction("outbox","readonly");const c=tx.objectStore("outbox").openCursor();
+    c.onsuccess=()=>{const x=c.result;if(x){out.push({key:x.key,job:x.value});x.continue()}};tx.oncomplete=()=>ok(out);tx.onerror=()=>no(tx.error)});
+  for(const {key,job} of rows){
+    if(typeof key==="string"){await kv.del("outbox",key);continue}
+    const sent=await kv.get("drafts","sent:"+key).catch(()=>null);
+    if(sent&&JSON.stringify(sent)===JSON.stringify(job.draft))await kv.del("outbox",key)}
+}catch(e){}}
+
 /* ---------- server ---------- */
 async function api(path,body){
   const r=await fetch(path,body?{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}:{cache:"no-store"});
   const j=await r.json().catch(()=>({}));
-  if(!r.ok){const e=new Error(j.error||("http_"+r.status));e.status=r.status;throw e}
+  if(!r.ok){const e=new Error((j.error||("http_"+r.status))+(j.message?": "+j.message:""));e.status=r.status;throw e}
   return j}
 const isNet=e=>!e.status; // fetch threw: no signal (or the server is unreachable)
 
@@ -150,6 +163,7 @@ const isDone=d=>!!resultOf(d.id)||d.completed;
 
 async function load(){
   if(!guid){phone.innerHTML=`<div class="msg"><b>${t("noLink")}</b></div>`;return}
+  await cleanOutbox();
   [drafts,outbox]=await Promise.all([kv.all("drafts"),kv.all("outbox")]);
   try{
     const j=await api("/api/list?guid="+guid);
@@ -249,17 +263,25 @@ function renderSummary(){const x=tally();const all=x.open===0;
 }
 
 /* ---------- one delivery: the wizard ---------- */
-const DRAFT=d=>({step:0,boxes:d.boxes,failOpen:false,photos:[],receipt:[],sig:null,signer:"",lines:[],rmaPhotos:[],rmaNote:"",diffReason:null});
+const DRAFT=d=>({step:0,boxes:d.boxes,failOpen:false,photos:[],receipt:[],sig:null,signer:"",lines:[],rmaPhotos:[],rmaNote:"",diffReason:null,saved:{}});
+// A delivery the main system already has data for (reopened, maybe on another phone): its steps start filled in.
+// Photos stay in the main system (saved: links to show them); a new photo replaces the saved one.
+function fromSaved(d){const s=(L.saved||{})[d.id];if(!s||s.status!=="delivered")return null;
+  return {...DRAFT(d),boxes:s.boxes_delivered??d.boxes,signer:s.receiver_name||"",diffReason:s.diff_reason||null,rmaNote:s.rma_note||"",
+    saved:{signature:s.urls.signature,photos:s.urls.package,receipt:s.urls.receipt,rmaPhotos:s.urls.rma},
+    lines:s.payments.map(p=>({id:p.id,type:p.type,amount:p.amount,photo:null,savedPhoto:p.photo_url,checkNum:p.checkNum,bank:p.bank,branch:p.branch,account:p.account,holder:p.holder,holderId:p.holderId,dueDate:p.dueDate}))}}
 function openStop(id){open=id;const d=byId(id);
   if(isDone(d)){renderDone(d);return}
-  draft=drafts[id]=drafts[id]||DRAFT(d);renderStop()}
+  draft=drafts[id]=drafts[id]||fromSaved(d)||DRAFT(d);draft.saved=draft.saved||{};renderStop()}
 let saveT=null;
 function saveDraft(){clearTimeout(saveT);const id=open,d=draft;saveT=setTimeout(()=>kv.put("drafts",id,d).catch(()=>{}),300)}
-function wizSteps(d){return ["box",...(d.due>0?["pay"]:[]),"rma"]}
+// The payment step always comes after the signature, also when nothing is owed (a payment can still be collected)
+function wizSteps(d){return ["box","pay","rma"]}
 const paidSum=ls=>ls.reduce((a,l)=>a+(+l.amount||0),0);
-const lineOk=l=>+l.amount>0&&(l.type==="credit"||!!l.photo)&&(l.type!=="check"||(l.checkNum&&l.bank&&l.branch&&l.account&&l.dueDate));
-function payValid(d){if(!draft.lines.length||!draft.lines.every(lineOk))return false;return paidSum(draft.lines)===d.due||!!draft.diffReason}
-function stepOk(d,k){if(k==="box")return draft.boxes>0&&draft.photos.length>0&&!!draft.sig&&draft.signer.trim().length>0;if(k==="pay")return payValid(d);return true}
+const lineOk=l=>+l.amount>0&&(l.type==="credit"||!!(l.photo||l.savedPhoto))&&(l.type!=="check"||(l.checkNum&&l.bank&&l.branch&&l.account&&l.dueDate));
+// Nothing owed: no payment is needed. Otherwise every line complete, and the total equal to what's owed or a reason given.
+function payValid(d){if(!draft.lines.length)return d.due===0;if(!draft.lines.every(lineOk))return false;return paidSum(draft.lines)===d.due||!!draft.diffReason}
+function stepOk(d,k){if(k==="box")return draft.boxes>0&&!!(draft.photos.length||draft.saved.photos)&&!!(draft.sig||draft.saved.signature)&&draft.signer.trim().length>0;if(k==="pay")return payValid(d);return true}
 function remText(d){const r=d.due-paidSum(draft.lines);return r===0?t("full"):r>0?t("short",fmt(r)):t("over",fmt(-r))}
 function boxWarn(d){if(draft.boxes===0)return t("box0");if(draft.boxes<d.boxes)return t("boxShort",d.boxes-draft.boxes);if(draft.boxes>d.boxes)return t("boxExtra",draft.boxes-d.boxes);return ""}
 function diffBox(d){const r=d.due-paidSum(draft.lines);if(!draft.lines.length||r===0)return "";
@@ -269,11 +291,13 @@ function lineWarns(d,l,i){const w=[];if(l.type==="check"&&l.checkNum){
   const other=L.tasks.find(x=>x.id!==d.id&&(resultOf(x.id)?.payments||[]).some(o=>o.type==="check"&&o.checkNum===l.checkNum));
   if(other)w.push(t("dupOther",esc(l.checkNum),esc(other.company)))}
   return w.map(x=>`<div>${x}</div>`).join("")}
-function photoBtn(id,label,key){return `<div class="bigfile"><label for="${id}" class="bigbtn">${label}</label><input id="${id}" data-file="${key}" type="file" accept="image/*" capture="environment" multiple></div><div class="thumbs">${draft[key].map((s,i)=>`<span class="th"><img src="${s}" alt=""><button class="thx" data-rm="${key}:${i}" aria-label="${t("remove")}">×</button></span>`).join("")}</div>`}
+// One photo of each kind per delivery: a new one replaces it. A photo the main system already has shows until it's replaced.
+function photoBtn(id,label,key){const saved=!draft[key].length&&draft.saved[key];
+  return `<div class="bigfile"><label for="${id}" class="bigbtn">${label}</label><input id="${id}" data-file="${key}" type="file" accept="image/*" capture="environment"></div><div class="thumbs">${draft[key].map((s,i)=>`<span class="th"><img src="${s}" alt=""><button class="thx" data-rm="${key}:${i}" aria-label="${t("remove")}">×</button></span>`).join("")}${saved?`<span class="th"><img src="${esc(saved)}" alt=""><span class="sub">${t("savedPhoto")}</span></span>`:""}</div>`}
 function lineCard(d,l,i){const need=l.type!=="credit";
   const f=(k,lb,type="text",mode="numeric")=>`<label class="fld">${t(lb)}<input type="${type}" ${type==="text"?`inputmode="${mode}"`:""} data-l="${i}" data-f="${k}" value="${esc(l[k]||"")}"></label>`;
   return `<div class="pline ${lineOk(l)?"ok":""}"><div class="pl-h"><b>${payLabel(l.type)}</b><label class="pl-amt">₪<input type="number" inputmode="decimal" data-l="${i}" data-f="amount" value="${l.amount}"></label><button class="small" data-del="${i}">${t("remove")}</button></div>
-    ${need?(l.photo?`<div class="pl-ph"><img src="${l.photo}" alt=""><span class="sub">${t("photographed")}</span><button class="small" data-lrm="${i}">${t("remove")}</button></div>`
+    ${need?(l.photo||l.savedPhoto?`<div class="pl-ph"><img src="${esc(l.photo||l.savedPhoto)}" alt=""><span class="sub">${l.photo?t("photographed"):t("savedPhoto")}</span><button class="small" data-lrm="${i}">${t("remove")}</button></div>`
       :`<div class="bigfile"><label for="lp-${i}" class="bigbtn" style="padding:14px">${t("photoOf",payLabel(l.type))}</label><input id="lp-${i}" data-lphoto="${i}" type="file" accept="image/*" capture="environment"></div>`):""}
     ${l.type==="check"?`<div class="grid2">${f("checkNum","fCheckNum")}${f("bank","fBank")}${f("branch","fBranch")}${f("account","fAccount")}${f("holder","fDrawer","text","text")}${f("holderId","fDrawerId")}</div>${f("dueDate","dueDate","date")}`:""}
     <div class="warn" id="lw-${i}">${lineWarns(d,l,i)}</div></div>`}
@@ -285,7 +309,7 @@ function renderStop(){const d=byId(open);const steps=wizSteps(d);if(draft.step>=
     <div class="counter"><button class="cbtn" id="bx-minus" aria-label="${t("less")}">−</button><b id="bx-val">${draft.boxes}</b><button class="cbtn" id="bx-plus" aria-label="${t("more")}">+</button></div>
     <p class="warn" id="w-box">${boxWarn(d)}</p>${photoBtn("f-photo",t("photoDelivery"),"photos")}
     <div class="q" style="font-size:1rem">${t("receiptQ")}</div>${photoBtn("f-receipt",t("photoReceipt"),"receipt")}
-    <div class="q" style="font-size:1.1rem">${t("custSign")}</div><canvas class="sig" id="sig"></canvas>
+    <div class="q" style="font-size:1.1rem">${t("custSign")}</div>${!draft.sig&&draft.saved.signature?`<div class="pl-ph"><img src="${esc(draft.saved.signature)}" alt="" style="background:#fff;object-fit:contain"><span class="sub">${t("savedSig")}</span></div>`:""}<canvas class="sig" id="sig"></canvas>
     <div class="row" style="justify-content:space-between;align-items:end"><label class="fld" style="flex:1" for="signer">${t("signer")}<input type="text" id="signer" autocomplete="off" value="${esc(draft.signer)}"></label><button class="small" id="clr">${t("clearSig")}</button></div>
     <button class="small" id="fail" style="align-self:center">${t("notReceived")}</button>
     ${draft.failOpen?`<div class="row" style="justify-content:center">${Object.entries(t("reasons")).map(([key,lab])=>`<button class="chip" data-reason="${key}">${lab}</button>`).join("")}</div>`:""}`;
@@ -297,7 +321,7 @@ function renderStop(){const d=byId(open);const steps=wizSteps(d);if(draft.step>=
     <div id="diffbox">${diffBox(d)}</div>
     ${draft.lines.length?`<div class="sub" style="text-align:center">${t("addMore")}</div>`:""}
     <div class="paygrid">${["check","cash","credit"].map(m=>`<button class="paybtn" data-add="${m}">${draft.lines.length?"+ ":""}${payLabel(m)}</button>`).join("")}</div>`}
-  if(k==="rma")body=`<div class="q">${t("anyReturns")}</div><p class="sub">${t("returnsOpt")}</p>${photoBtn("f-rma",t("photoReturn"),"rmaPhotos")}<label class="fld" for="rma-note">${t("rmaNote")}<textarea id="rma-note" rows="3">${esc(draft.rmaNote)}</textarea></label>`;
+  if(k==="rma")body=`<div class="q">${t("anyReturns")}</div><p class="sub">${t("returnsOpt")}</p>${photoBtn("f-rma",t("photoReturn"),"rmaPhotos")}<label class="fld" for="rma-note">${t("rmaNote")}<textarea id="rma-note" rows="3" maxlength="200">${esc(draft.rmaNote)}</textarea></label>`;
   const addr=[d.address,d.city].filter(Boolean).join(", ");
   phone.innerHTML=`<div class="ph-head"><div class="ph-top"><button class="back" id="back">${t("back")}</button>${langs()}</div><div class="t">${esc(d.company)}</div>
     <div class="m">${esc(addr)}${addr?` · <a href="https://waze.com/ul?q=${encodeURIComponent(addr)}&navigate=yes" target="_blank" rel="noopener">${t("navigate")}</a>`:""}${d.phone?` · <a class="ltr" style="white-space:nowrap" href="tel:${esc(d.phone)}">${esc(d.phone)}</a>`:""}</div>
@@ -311,7 +335,7 @@ function renderStop(){const d=byId(open);const steps=wizSteps(d);if(draft.step>=
   $("#back").onclick=()=>{open=null;renderList()};
   if($("#prev"))$("#prev").onclick=()=>{draft.step--;saveDraft();renderStop()};
   $("#next").onclick=()=>{if(last)finish(d);else{draft.step++;saveDraft();renderStop();window.scrollTo(0,0)}};
-  phone.querySelectorAll("[data-file]").forEach(inp=>inp.onchange=async()=>{const key=inp.dataset.file;for(const f of inp.files)draft[key].push(await shrink(f));saveDraft();keepScroll(renderStop)});
+  phone.querySelectorAll("[data-file]").forEach(inp=>inp.onchange=async()=>{const key=inp.dataset.file;if(!inp.files[0])return;draft[key]=[await shrink(inp.files[0])];saveDraft();keepScroll(renderStop)});
   phone.querySelectorAll("[data-rm]").forEach(b=>b.onclick=()=>{const [k2,i]=b.dataset.rm.split(":");draft[k2].splice(+i,1);saveDraft();keepScroll(renderStop)});
   if(k==="box"){$("#bx-minus").onclick=()=>{draft.boxes=Math.max(0,draft.boxes-1);saveDraft();keepScroll(renderStop)};$("#bx-plus").onclick=()=>{draft.boxes++;saveDraft();keepScroll(renderStop)};
     $("#fail").onclick=()=>{draft.failOpen=!draft.failOpen;keepScroll(renderStop)};
@@ -320,7 +344,7 @@ function renderStop(){const d=byId(open);const steps=wizSteps(d);if(draft.step>=
   if(k==="pay"){
     phone.querySelectorAll("[data-add]").forEach(b=>b.onclick=()=>{const rem=Math.max(0,d.due-paidSum(draft.lines));draft.lines.push({type:b.dataset.add,amount:rem,photo:null});saveDraft();renderStop()});
     phone.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{draft.lines.splice(+b.dataset.del,1);saveDraft();renderStop()});
-    phone.querySelectorAll("[data-lrm]").forEach(b=>b.onclick=()=>{draft.lines[+b.dataset.lrm].photo=null;saveDraft();keepScroll(renderStop)});
+    phone.querySelectorAll("[data-lrm]").forEach(b=>b.onclick=()=>{const l=draft.lines[+b.dataset.lrm];if(l.photo)l.photo=null;else l.savedPhoto=null;saveDraft();keepScroll(renderStop)});
     phone.querySelectorAll("[data-lphoto]").forEach(inp=>inp.onchange=async()=>{if(!inp.files[0])return;draft.lines[+inp.dataset.lphoto].photo=await shrink(inp.files[0]);saveDraft();keepScroll(renderStop)});
     phone.querySelectorAll("[data-diff]").forEach(b=>b.onclick=()=>{draft.diffReason=b.dataset.diff;saveDraft();keepScroll(renderStop)});
     phone.querySelectorAll("[data-l]").forEach(inp=>inp.oninput=()=>{const i=+inp.dataset.l,f=inp.dataset.f;draft.lines[i][f]=f==="amount"?(inp.value===""?"":+inp.value):inp.value.trim();
@@ -344,11 +368,21 @@ function initSig(){const c=phone.querySelector("#sig");const r=c.getBoundingClie
   c.onpointerup=()=>{if(!down)return;down=false;draft.sig=c.toDataURL("image/png");saveDraft();refreshNext()};
   phone.querySelector("#clr").onclick=()=>{x.clearRect(0,0,c.width,c.height);draft.sig=null;saveDraft();refreshNext()}}
 
-// Photos are shrunk on the phone (longest side 1600px, JPEG) so they send quickly on a weak signal
+// Every photo is made to fit a 1600x1600 square (made smaller if larger, never larger) and saved as JPEG at 80%,
+// on the phone, so it sends quickly on a weak signal. The signature is not changed: it is sent as drawn, as PNG.
+const IMG_MAX=1600,IMG_QUALITY=.8;
+function drawFit(im){const s=Math.min(1,IMG_MAX/Math.max(im.width,im.height));const c=document.createElement("canvas");c.width=Math.max(1,Math.round(im.width*s));c.height=Math.max(1,Math.round(im.height*s));
+  const x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,c.width,c.height);   // JPEG has no transparency: white, not black
+  x.drawImage(im,0,0,c.width,c.height);return c.toDataURL("image/jpeg",IMG_QUALITY)}
+// A photo just taken
 function shrink(file){return new Promise(ok=>{const url=URL.createObjectURL(file);const im=new Image();
-  im.onload=()=>{const m=1600,s=Math.min(1,m/Math.max(im.width,im.height));const c=document.createElement("canvas");c.width=Math.round(im.width*s);c.height=Math.round(im.height*s);
-    c.getContext("2d").drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(url);ok(c.toDataURL("image/jpeg",.8))};
+  im.onload=()=>{URL.revokeObjectURL(url);ok(drawFit(im))};
   im.onerror=()=>{URL.revokeObjectURL(url);const r=new FileReader();r.onload=()=>ok(r.result);r.readAsDataURL(file)};im.src=url})}
+// Right before sending: a photo already on the phone (maybe taken before this rule) that is too big or not JPEG is redone
+function fitImage(src){if(typeof src!=="string"||!src.startsWith("data:image/"))return Promise.resolve(src);
+  return new Promise(ok=>{const im=new Image();
+    im.onload=()=>{const fits=Math.max(im.width,im.height)<=IMG_MAX&&src.startsWith("data:image/jpeg");ok(fits?src:drawFit(im))};
+    im.onerror=()=>ok(src);im.src=src})}
 
 /* ---------- finishing: into the outbox first, then sent ---------- */
 function summaryOf(dr,status,reason){return {status,reason:reason||null,finished_at:new Date().toISOString(),receiver_name:dr.signer,boxes_delivered:status==="delivered"?dr.boxes:0,
@@ -358,34 +392,30 @@ function finish(d){enqueue(d,{id:d.id,status:"delivered",draft:JSON.parse(JSON.s
 function finishFailed(d,reason){enqueue(d,{id:d.id,status:"not_delivered",reason,draft:JSON.parse(JSON.stringify(draft)),summary:summaryOf(draft,"not_delivered",reason),up:{}})}
 function toast(msg,warn){const el=document.createElement("div");el.className="toast";el.textContent=msg;if(warn)el.style.background="var(--signal)";const b=phone.querySelector(".ph-body");if(b){b.prepend(el);setTimeout(()=>el.remove(),2600)}}
 
-let flushing=false;
+let flushing=false,sendingId=null;   // sendingId: the delivery being sent right now ("reopen" waits for it)
 async function flush(force){
   if(flushing||!Object.keys(outbox).length)return;
   if(!navigator.onLine&&!force)return;
   flushing=true;let changed=false;
-  for(const id of Object.keys(outbox)){const job=outbox[id];
+  for(const id of Object.keys(outbox)){const job=outbox[id];sendingId=job.id;
     try{
-      // Upload each photo once; the path is remembered so a retry doesn't upload it again
-      const up=async(key,data,kind)=>{if(!data)return null;if(!job.up[key]){job.up[key]=(await api("/api/photo",{guid,id:job.id,kind,data})).path;await kv.put("outbox",id,job)}return job.up[key]};
+      // All photos go inside the finish call: signature, package, receipt, returns, and each check / cash photo.
+      // A photo that wasn't taken again (a reopened delivery) is not sent; the main system keeps the saved one.
       const dr=job.draft;let result;
       if(job.status==="delivered"){
-        const packages=[],receipts=[],rma=[];
-        for(const [i,p] of dr.photos.entries())packages.push(await up("p"+i,p,"package"));
-        for(const [i,p] of dr.receipt.entries())receipts.push(await up("r"+i,p,"receipt"));
-        for(const [i,p] of dr.rmaPhotos.entries())rma.push(await up("m"+i,p,"rma"));
-        const signature=await up("sig",dr.sig,"signature");
-        const payments=[];for(const [i,l] of dr.lines.entries())payments.push({...l,photo:await up("l"+i,l.photo,l.type==="check"?"check":"cash")});
-        result={status:"delivered",boxes:dr.boxes,receiver:dr.signer,signature,packages,receipts,payments,diffReason:dr.diffReason,rma,rmaNote:dr.rmaNote};
+        const fit1=async a=>(await Promise.all(a.slice(0,1).map(p=>fitImage(p)))).filter(Boolean);
+        const payments=await Promise.all(dr.lines.map(async({savedPhoto,...l})=>({...l,photo:await fitImage(l.photo)})));
+        result={status:"delivered",boxes:dr.boxes,receiver:dr.signer,signature:dr.sig,packages:await fit1(dr.photos),receipts:await fit1(dr.receipt),rma:await fit1(dr.rmaPhotos),payments,diffReason:dr.diffReason,rmaNote:dr.rmaNote};
       }else result={status:"not_delivered",reason:job.reason};
       const j=await api("/api/finish",{guid,id:job.id,result});
       L.results[job.id]={...job.summary,finished_at:j.finished_at};
       kv.put("drafts","sent:"+job.id,job.draft).catch(()=>{}); // kept so "reopen" brings the photos back
-      delete outbox[id];await kv.del("outbox",id);changed=true;
+      delete outbox[id];await kv.del("outbox",job.id);changed=true;   // job.id: the number key it was stored under
     }catch(e){
       if(isNet(e))break;               // no signal: try again later
-      job.error=e.message;outbox[id]=job;await kv.put("outbox",id,job).catch(()=>{});changed=true;
+      job.error=e.message;outbox[id]=job;await kv.put("outbox",job.id,job).catch(()=>{});changed=true;
     }}
-  flushing=false;
+  flushing=false;sendingId=null;
   if(changed){kv.put("cache",guid,L).catch(()=>{});if(!open)renderList();else if(isDone(byId(open)))renderDone(byId(open))}
 }
 window.addEventListener("online",()=>{rerender();flush()});
@@ -414,8 +444,15 @@ function detailHTML(d,r){if(r.status!=="delivered")return "";
   ${ls.map(l=>`<dt>${payLabel(l.type)}</dt><dd>${l.type==="check"?`<span class="ltr">${esc(l.checkNum)} · ${esc(l.bank)}/${esc(l.branch)}/${esc(l.account)}</span> · ${esc(l.dueDate||"")} · `:""}${fmt(l.amount)}</dd>`).join("")}
   ${r.rma_note?`<dt>${t("stepRma")}</dt><dd>${esc(r.rma_note)}</dd>`:""}</dl>`}
 async function undo(d){
+  // Being sent right now: reopening only on the phone would be overwritten when the send completes
+  if(sendingId===d.id){toast(t("stillSending"),true);return}
   if(outbox[d.id]){const job=outbox[d.id];delete outbox[d.id];await kv.del("outbox",d.id);drafts[d.id]={...job.draft,failOpen:false,step:0};await kv.put("drafts",d.id,drafts[d.id]);openStop(d.id);return}
-  try{await api("/api/undo",{guid,id:d.id});delete L.results[d.id];const kept=await kv.get("drafts","sent:"+d.id).catch(()=>null);drafts[d.id]=kept?{...kept,failOpen:false,step:0}:DRAFT(d);await kv.put("drafts",d.id,drafts[d.id]);openStop(d.id)}
+  // Reopened in the main system; nothing is deleted there. The steps start filled in: from this phone's copy, else from the main system.
+  try{await api("/api/undo",{guid,id:d.id});delete L.results[d.id];d.completed=false;
+    kv.put("cache",guid,L).catch(()=>{});   // the copy shown when the list can't load must not show it completed
+    const kept=await kv.get("drafts","sent:"+d.id).catch(()=>null);
+    if(!kept){try{const j=await api("/api/list?guid="+guid);L.saved=j.saved||{}}catch(e){}}
+    drafts[d.id]=kept?{...kept,failOpen:false,step:0,saved:kept.saved||{}}:fromSaved(d)||DRAFT(d);await kv.put("drafts",d.id,drafts[d.id]);openStop(d.id)}
   catch(e){toast(isNet(e)?t("needsSignal"):e.message,true)}}
 
 load();

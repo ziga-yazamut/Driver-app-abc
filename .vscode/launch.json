@@ -1,0 +1,63 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      // Starts netlify dev first if it is not already running (tools/netlify-dev-ensure.mjs).
+      // The browser opens the same path on :8887 ("starting..." page), which redirects to :8888 once netlify dev answers.
+      // To open another page, change only the path after the port, e.g. http://localhost:8887/office
+      "name": "Browser: driver app (localhost:8888)",
+      // A separate Chrome (own profile, so it never merges into your normal Chrome window).
+      // Closing that Chrome window ends the debug session; "cleanUp" closes the whole browser when you stop debugging.
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:8887/d/f6c135f8-caff-4d34-bffd-867e70458950",
+      "webRoot": "${workspaceFolder}/public",
+      "runtimeExecutable": "stable",
+      "userDataDir": "${workspaceFolder}/.vs/chrome-debug-profile",
+      "cleanUp": "wholeBrowser",
+      "killBehavior": "forceful",
+      // Visual Studio's debugger does not fill in defaults for "server", so they are all spelled out here
+      // (copied from js-debug's node launch defaults); leaving any of them out crashes the launch.
+      "server": {
+        "type": "node",
+        "request": "launch",
+        "name": "netlify dev (if not running)",
+        "program": "${workspaceFolder}/tools/netlify-dev-ensure.mjs",
+        "args": [ "8888", "8887", "chrome-debug-profile" ],
+        "cwd": "${workspaceFolder}",
+        "console": "internalConsole",
+        "runtimeExecutable": "node",
+        "runtimeVersion": "default",
+        "runtimeArgs": [],
+        "env": {},
+        "envFile": null,
+        "stopOnEntry": false,
+        "restart": false,
+        "profileStartup": false,
+        "attachSimplePort": null,
+        "experimentalNetworking": "auto",
+        "killBehavior": "forceful",
+        "autoAttachChildProcesses": true,
+        "localRoot": null,
+        "remoteRoot": null,
+        "outputCapture": "console",
+        "timeout": 10000,
+        "timeouts": {},
+        "showAsyncStacks": true,
+        "skipFiles": [ "<node_internals>/**" ],
+        "smartStep": true,
+        "sourceMaps": true,
+        "sourceMapRenames": true,
+        "pauseForSourceMap": false,
+        "resolveSourceMapLocations": [ "**", "!**/node_modules/**" ],
+        "rootPath": "${workspaceFolder}",
+        "outFiles": [ "${workspaceFolder}/**/*.(m|c|)js", "!**/node_modules/**" ],
+        "sourceMapPathOverrides": {},
+        "enableContentValidation": true,
+        "cascadeTerminateToConfigurations": [],
+        "runtimeSourcemapPausePatterns": [],
+        "enableDWARF": true
+      }
+    }
+  ]
+}

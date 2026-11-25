@@ -1,81 +1,78 @@
-// POST /api/finish {guid, id, result}: a finished delivery (photos already uploaded through /api/photo).
-// Saved in Supabase. With MAIN_WRITE=on, a delivered one also goes to the main system's FinalizeSignature
-// (signature, receiver name, package photo, amount paid) and gets its green tick (SetCompleted).
-// Sending the same delivery again (the phone retrying after no signal) just saves it again.
+// POST /api/finish {guid, id, result}: a finished delivery, saved in the main system only (no Supabase).
+// Delivered: ConfirmPackage -> FinalizeDelivery -> SetCompleted(true), as the existing driver page does.
+//   FinalizeDelivery gets the signature, receiver name, package photo, receipt photo, amountPaid (= the sum of the payments),
+//   each payment (check details, check / cash photo), boxes delivered, the difference reason, the returns photo and note.
+// Not delivered: FinalizeDelivery with failedDelivery and the reason -> SetCompleted(true), so the stop is done in the app.
+// Finishing again (a retry, or after "reopen") updates what the main system has: a photo not sent keeps the saved one,
+// a payment with its id updates that payment. A reopened delivery whose signature was not drawn again sends the saved one.
 //
-// result: {status: delivered|not_delivered, reason, boxes, receiver, signature, packages[], receipts[],
-//          payments[{type, amount, photo, checkNum, bank, branch, account, holder, holderId, dueDate}],
-//          diffReason, rma[], rmaNote}
+// result: {status: delivered|not_delivered, reason, boxes, receiver, signature (data URL), packages[], receipts[], rma[] (data URLs,
+//          the first one is used), payments[{id, type, amount, photo (data URL), checkNum, bank, branch, account, holder,
+//          holderId, dueDate}], diffReason, rmaNote}
 import { json, handle } from '../lib/http.mjs';
-import { upsert, update, downloadObject, log } from '../lib/supa.mjs';
-import { finalize, setCompleted, writesOn } from '../lib/abc.mjs';
-import { validGuid, validId, taskOf, ensureList, BUCKET, REASONS, PAY_TYPES } from '../lib/driver.mjs';
+import { finalizeDelivery, setCompleted, confirmPackage, savedPhotoB64 } from '../lib/abc.mjs';
+import { validGuid, validId, taskOf, REASONS, PAY_TYPES } from '../lib/driver.mjs';
 
 const txt = (v, n = 200) => String(v ?? '').trim().slice(0, n);
 const money = v => Math.round((Number(v) || 0) * 100) / 100;
+// A data URL from the phone -> the bare base64 the main system expects
+const b64 = (v, types = ['jpeg', 'png']) => { const m = /^data:image\/(\w+);base64,([A-Za-z0-9+/=]+)$/.exec(v || ''); return m && types.includes(m[1]) ? m[2] : null; };
+const first = a => b64(Array.isArray(a) ? a[0] : null) || '';
+const MAX_B64 = 5.5 * 1024 * 1024;   // a function's request can't be over 6 MB
 
 export default handle(async req => {
   if (req.method !== 'POST') return json({ error: 'method' }, 405);
   const { guid, id, result: r } = await req.json().catch(() => ({}));
   if (!validGuid(guid) || !validId(id) || !r || typeof r !== 'object') return json({ error: 'bad_request' }, 400);
-  const { list, task } = await taskOf(guid, id);
-  if (!task) return json({ error: 'not_found' }, 404);
-
-  // A photo must belong to this link and this delivery
-  const prefix = `${guid}/${id}/`;
-  const own = p => typeof p === 'string' && p.startsWith(prefix) && !p.includes('..');
-  const paths = a => (Array.isArray(a) ? a : []).filter(own).slice(0, 20);
   const delivered = r.status === 'delivered';
   if (!delivered && r.status !== 'not_delivered') return json({ error: 'bad_status' }, 400);
   if (!delivered && !REASONS.includes(r.reason)) return json({ error: 'bad_reason' }, 400);
+  const { list, task } = await taskOf(guid, id);
+  if (!task) return json({ error: 'not_found' }, 404);
+  const saved = list.saved[id];
+  const finished_at = new Date().toISOString();
 
-  const payments = delivered ? (Array.isArray(r.payments) ? r.payments : []).slice(0, 20)
-    .filter(p => PAY_TYPES.includes(p?.type))
+  if (!delivered) {
+    for (const [step, call] of [
+      ['FinalizeDelivery', () => finalizeDelivery({ id, failed: true, failedReason: r.reason })],
+      ['SetCompleted', () => setCompleted(id, true)],
+    ]) { const res = await call(); if (!res.ok) return mainFailed(id, step, res); }
+    return json({ ok: true, finished_at, main: 'sent' });
+  }
+
+  const name = txt(r.receiver, 80);
+  // A reopened delivery keeps its signature unless the customer signed again
+  const signature = b64(r.signature, ['png', 'jpeg']) || (saved?.status === 'delivered' ? await savedPhotoB64(saved.photos.signature) : null);
+  const pkg = first(r.packages), receipt = first(r.receipts), rma = first(r.rma);
+  if (!name || !signature || !(pkg || saved?.photos.package)) return json({ error: 'incomplete' }, 400);
+
+  const savedIds = new Set((saved?.payments || []).map(p => p.id));
+  const payments = (Array.isArray(r.payments) ? r.payments : []).slice(0, 20)
+    .filter(p => PAY_TYPES.includes(p?.type) && money(p.amount) > 0)
     .map(p => ({
-      type: p.type, amount: money(p.amount), photo: own(p.photo) ? p.photo : null,
+      id: savedIds.has(p.id) ? p.id : null, type: p.type, amount: money(p.amount),
+      photoB64: p.type === 'credit' ? '' : b64(p.photo) || '',
       ...(p.type === 'check' ? { checkNum: txt(p.checkNum, 20), bank: txt(p.bank, 5), branch: txt(p.branch, 8), account: txt(p.account, 20),
         holder: txt(p.holder, 80), holderId: txt(p.holderId, 12), dueDate: /^\d{4}-\d{2}-\d{2}$/.test(p.dueDate || '') ? p.dueDate : null } : {}),
-    })) : [];
+    }));
   const amountPaid = money(payments.reduce((a, p) => a + p.amount, 0));
-  const row = {
-    delivery_id: id, guid, company: task.company,
-    status: delivered ? 'delivered' : 'not_delivered',
-    reason: delivered ? null : r.reason,
-    boxes_ordered: task.boxes,
-    boxes_delivered: delivered ? Math.max(0, Math.min(999, parseInt(r.boxes, 10) || 0)) : 0,
-    receiver_name: delivered ? txt(r.receiver, 80) : null,
-    signature_path: delivered && own(r.signature) ? r.signature : null,
-    package_paths: delivered ? paths(r.packages) : [],
-    receipt_paths: delivered ? paths(r.receipts) : [],
-    amount_due: task.due,
-    amount_paid: amountPaid,
-    payments,
-    diff_reason: delivered && amountPaid !== task.due ? txt(r.diffReason, 20) || null : null,
-    rma_paths: paths(r.rma),
-    rma_note: txt(r.rmaNote, 500) || null,
-    finished_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  };
-  if (delivered && (!row.signature_path || !row.package_paths.length || !row.receiver_name)) return json({ error: 'incomplete' }, 400);
+  const size = signature.length + pkg.length + receipt.length + rma.length + payments.reduce((a, p) => a + p.photoB64.length, 0);
+  if (size > MAX_B64) return json({ error: 'too_big', message: 'Too many photos to send at once' }, 413);
+  const diffReason = amountPaid !== task.due ? txt(r.diffReason, 200) || null : null;
+  const boxes = Math.max(0, Math.min(999, parseInt(r.boxes, 10) || 0));
 
-  await ensureList(list);
-  await upsert('driver_results', [row], { onConflict: 'delivery_id' });
-
-  let main = 'off';
-  if (writesOn() && delivered && list.from === 'main') {
-    try {
-      const b64 = async p => p ? (await downloadObject(BUCKET, p)).toString('base64') : '';
-      const f = await finalize({ id, name: row.receiver_name, signatureB64: await b64(row.signature_path), packageB64: await b64(row.package_paths[0]), amountPaid });
-      const c = f.ok ? await setCompleted(id, true) : { ok: false };
-      main = f.ok && c.ok ? 'sent' : 'failed';
-      await update('driver_results', `delivery_id=eq.${id}`, main === 'sent' ? { main_sent_at: new Date().toISOString(), main_error: null } : { main_error: `${f.status} ${f.text || ''}`.slice(0, 300) });
-      await log('main_finalize', main === 'sent', { id, status: f.status });
-    } catch (e) {
-      main = 'failed';
-      await update('driver_results', `delivery_id=eq.${id}`, { main_error: e.message.slice(0, 300) });
-    }
-  }
-  return json({ ok: true, finished_at: row.finished_at, main });
+  for (const [step, call] of [
+    ['ConfirmPackage', () => confirmPackage(id)],
+    ['FinalizeDelivery', () => finalizeDelivery({ id, name, signatureB64: signature, packageB64: pkg, receiptB64: receipt, amountPaid, boxes, diffReason,
+      payments, rmaB64: rma, rmaNote: txt(r.rmaNote, 200) })],
+    ['SetCompleted', () => setCompleted(id, true)],
+  ]) { const res = await call(); if (!res.ok) return mainFailed(id, step, res); }
+  return json({ ok: true, finished_at, main: 'sent', amount_paid: amountPaid });
 });
+
+function mainFailed(id, step, res) {
+  console.error(`main ${step} failed for ${id}`, res.status, res.text);
+  return json({ error: 'main_failed', message: `${step}: ${res.status} ${res.text}`.trim() }, 502);
+}
 
 export const config = { path: '/api/finish' };

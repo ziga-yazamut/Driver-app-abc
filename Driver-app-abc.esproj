@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.VisualStudio.JavaScript.Sdk/1.0.7204101">
+  <!--
+    Visual Studio JavaScript project for the Netlify site (public/ + netlify/functions/).
+    F5 uses .vscode/launch.json: "Browser: driver app" starts netlify dev on :8888 if it is not
+    already running (tools/netlify-dev-ensure.mjs, via the "server" section), then opens Edge.
+  -->
+  <PropertyGroup>
+    <!-- No build step: the site is static files + functions bundled by Netlify on deploy -->
+    <ShouldRunBuildScript>false</ShouldRunBuildScript>
+    <BuildOutputFolder>$(MSBuildProjectDirectory)\public</BuildOutputFolder>
+    <DefaultItemExcludes>$(DefaultItemExcludes);.netlify\**;.vs\**;node_modules\**;test-results\**;playwright-report\**;**\__pycache__\**;**\.pytest_cache\**;bin\**;obj\**</DefaultItemExcludes>
+  </PropertyGroup>
+</Project>

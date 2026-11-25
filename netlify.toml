@@ -20,10 +20,7 @@
   to = "/index.html"
   status = 200
 
-[[redirects]]
-  from = "/office"
-  to = "/office.html"
-  status = 200
+# /office is disabled: its page and API are kept, not deployed, in netlify/disabled/ (see the README there)
 
 [[headers]]
   for = "/*"

@@ -1,8 +1,10 @@
+// DISABLED: not deployed (only netlify/functions is). The app now sends its photos inside /api/finish to the main system.
 // POST /api/photo {guid, id, kind, data}: one photo (a JPEG or PNG data URL, already shrunk on the phone)
-// into the private bucket. Returns its path, which /api/finish then refers to.
+// into the private Supabase bucket. Returns its path, which the old /api/finish then referred to.
 import { json, handle } from '../lib/http.mjs';
-import { uploadObject } from '../lib/supa.mjs';
-import { validGuid, validId, taskOf, BUCKET } from '../lib/driver.mjs';
+import { uploadObject } from './supa.mjs';
+import { validGuid, validId, taskOf } from '../lib/driver.mjs';
+import { BUCKET } from './office-lib.mjs';
 
 const KINDS = ['package', 'receipt', 'signature', 'check', 'cash', 'rma'];
 const MAX = 4 * 1024 * 1024;

@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DebuggerFlavor>LaunchJsonDebugger</DebuggerFlavor>
+    <LaunchJsonTarget>{
+  "name": "Browser: driver app (localhost:8888)",
+  "type": "edge",
+  "request": "launch",
+  "url": "http://localhost:8888/d/10e99ee0-5c4b-4f06-8ae3-2af808f03961",
+  "webRoot": "C:\\Users\\Xavyer\\source\\repos\\ziga-yazamut\\Driver-app-abc/public",
+  "preLaunchTask": "npm: dev:ensure"
+}</LaunchJsonTarget>
+  </PropertyGroup>
+</Project>

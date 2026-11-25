@@ -1,19 +1,9 @@
-// GET /api/status: which keys are set (yes/no only, never the values), where deliveries come from,
-// whether writing to the main system is on, and whether the tables exist.
+// GET /api/status: which main system the app uses (its only backend).
 // GET /api/status?guid=<GUID>: also what the main system answers for that driver link (status and counts only, no data).
-import { select } from '../lib/supa.mjs';
 import { json } from '../lib/http.mjs';
-import { readsOn, writesOn, base, GUID } from '../lib/abc.mjs';
+import { base, GUID } from '../lib/abc.mjs';
 
 export default async req => {
-  const keys = Object.fromEntries(['SUPABASE_URL', 'SUPABASE_SECRET_KEY', 'ADMIN_CODE']
-    .map(k => [k, !!process.env[k] || (k === 'SUPABASE_SECRET_KEY' && !!process.env.SUPABASE_SERVICE_ROLE_KEY)]));
-  keys.MAIN_READ = readsOn() ? (process.env.MAIN_READ ? 'on' : 'on (default)') : 'off';
-  let tables = null, error = null;
-  try {
-    const [lists, tasks, results] = await Promise.all([select('driver_lists', 'select=guid'), select('driver_tasks', 'select=id'), select('driver_results', 'select=delivery_id')]);
-    tables = { lists: lists.length, tasks: tasks.length, results: results.length };
-  } catch (e) { error = e.message; }
   const guid = new URL(req.url).searchParams.get('guid') || '';
   let main;
   if (GUID.test(guid)) {
@@ -27,7 +17,7 @@ export default async req => {
         ms: Date.now() - t0, start: m ? undefined : text.slice(0, 80).replace(/\s+/g, ' ') };
     } catch (e) { main = { error: e.message, cause: e.cause?.code || e.cause?.message, ms: Date.now() - t0 }; }
   }
-  return json({ keys, source: readsOn() ? 'main' : 'office', mainWrite: writesOn(), tables, error, main }, 200, { 'Cache-Control': 'no-store' });
+  return json({ backend: base(), main }, 200, { 'Cache-Control': 'no-store' });
 };
 
 export const config = { path: '/api/status' };

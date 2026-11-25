@@ -6,3 +6,7 @@ test-results/
 playwright-report/
 .netlify/
 .env
+# Visual Studio
+.vs/
+bin/
+obj/

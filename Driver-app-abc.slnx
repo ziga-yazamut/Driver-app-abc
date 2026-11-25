@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="Driver-app-abc.esproj">
+    <Build Project="false" />
+  </Project>
+</Solution>

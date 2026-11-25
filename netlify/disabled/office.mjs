@@ -1,3 +1,4 @@
+// DISABLED: not deployed (only netlify/functions is). See README.md in this folder for how to turn it back on.
 // The office page (/office). Every call needs the office code (ADMIN_CODE in Netlify).
 // GET  /api/office?code=…                   the driver lists, newest first, with how many deliveries are done
 // GET  /api/office?code=…&guid=…            one list: its deliveries and each result with photo links
@@ -10,10 +11,11 @@
 // The office can type test lists also while the main system is read: both work side by side.
 // Opening a main-system GUID here adds it to the lists.
 import { json, handle } from '../lib/http.mjs';
-import { select, insert, update, remove } from '../lib/supa.mjs';
-import { readsOn, writesOn } from '../lib/abc.mjs';
-import { getList } from '../lib/source.mjs';
-import { validGuid, validId, withLinks, ensureList } from '../lib/driver.mjs';
+import { select, insert, update, remove } from './supa.mjs';
+import { validGuid, validId } from '../lib/driver.mjs';
+import { getAnyList as getList, withLinks, ensureList } from './office-lib.mjs';
+// The main system is always read and written (there are no MAIN_READ / MAIN_WRITE switches any more)
+const readsOn = () => true, writesOn = () => true;
 
 const txt = (v, n = 200) => String(v ?? '').trim().slice(0, n);
 const taskRow = t => ({
