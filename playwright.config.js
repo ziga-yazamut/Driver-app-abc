@@ -1,5 +1,6 @@
 // Tests. In CI: npx playwright install --with-deps chromium
-// mockup: the clickable mockup. app: the real app against test/devserver.mjs (a local stand-in for Netlify + Supabase).
+// mockup: the clickable mockup. app: the real app against test/devserver.mjs (a local stand-in for Netlify + a fake main system).
+// Locally without Playwright's browser: CHROMIUM_PATH="C:\Program Files\Google\Chrome\Application\chrome.exe" npx playwright test
 const { defineConfig } = require('@playwright/test');
 module.exports = defineConfig({
   timeout: 30000,

@@ -9,7 +9,7 @@
   "devDependencies": {
     "@playwright/test": "1.56.1"
   },
-  "description": "ABC driver app: static app + Netlify functions, Supabase for the app's own data. The main system (abcmobile) is connected last.",
+  "description": "ABC driver app: static app + Netlify functions; the main system (abcmobile) is its only backend.",
   "engines": {
     "node": ">=20"
   }

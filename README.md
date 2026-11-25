@@ -61,7 +61,7 @@ The app takes one photo of each kind per delivery (package, receipt, returns, on
 | `netlify/lib/source.mjs` | The driver's list from the main system |
 | `netlify/disabled/` | Not deployed: the `/office` page and API, `/api/photo` and the Supabase client |
 | `supabase/schema.sql` | The Supabase tables the disabled `/office` page used |
-| `test/devserver.mjs` | A local stand-in for Netlify and Supabase (written for the old Supabase flow) |
+| `test/devserver.mjs` | A local stand-in for Netlify and a fake main system (in memory), for the tests and `npm run dev` |
 | `mockup/` | The clickable mockup |
 | `ocr/` | An earlier draft, not used |
 
@@ -69,12 +69,11 @@ The app takes one photo of each kind per delivery (package, receipt, returns, on
 
 ```bash
 npm install
-netlify dev --offline   # the app at http://localhost:8888/d/<GUID>, against MAIN_URL (live data!) or MAIN_URL_OVERRIDE
-node --test test/       # the main-system client
+npm run dev             # the app against a fake main system, no account and no real data:
+                        #   POST http://localhost:8888/test/new-list for a list, then open /d/<GUID>
+netlify dev --offline   # the app against MAIN_URL (the live abcmobile.shop: REAL data!) or MAIN_URL_OVERRIDE
+npm test                # node --test (the main-system client), then Playwright: the app against the fake main system, and the mockup
 ```
 
-The Playwright tests (`test/app.spec.js`, run by `npm test`) and `npm run dev` (`test/devserver.mjs`) were written for the old Supabase flow and the `/office` page; they need rewriting for the main-system flow.
-
-```bash
-npm test        # node --test, then Playwright (the app and office tests are out of date)
-```
+Playwright needs Chromium (`npx playwright install chromium`), or point it at an installed Chrome:
+`CHROMIUM_PATH="C:\Program Files\Google\Chrome\Application\chrome.exe" npm test`.
