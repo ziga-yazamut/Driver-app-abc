@@ -3,7 +3,9 @@
   functions = "netlify/functions"
   # Each deploy costs Netlify credits: skip it when nothing the live site uses changed
   # (tests, mockup, docs, ocr/ and the README don't need a deploy). Exit 0 = skip.
-  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- public netlify netlify.toml package.json package-lock.json"
+  # A build without Netlify's cache gets CACHED_COMMIT_REF = COMMIT_REF, so the diff is always empty and the deploy
+  # would be skipped although things changed: when the two are the same it can't tell, so it builds.
+  ignore = "[ \"$CACHED_COMMIT_REF\" != \"$COMMIT_REF\" ] && git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- public netlify netlify.toml package.json package-lock.json"
 
 [functions]
   node_bundler = "esbuild"
